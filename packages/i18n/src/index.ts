@@ -1,5 +1,5 @@
 /**
- * DzRent i18n core — language model, RTL direction, DZD formatting and a tiny
+ * DzRent i18n core — language selection, RTL direction, DZD formatting and a tiny
  * framework-agnostic translator. UI frameworks wrap this in their own provider.
  */
 import { STR, type StringKey, type LocalizedString } from './strings';

@@ -1,6 +1,6 @@
 # DzRent Backend — Handoff
 
-NestJS + Prisma + PostgreSQL backend for an Algerian car-rental platform (Client PWA + Agency SaaS). This document is the single source of truth for continuing the project — **ideally in Claude Code or a fresh chat**, so you stop paying the token cost of replaying this whole conversation.
+NestJS + Prisma + PostgreSQL backend for an Algerian car-rental platform (Client PWA + Agency SaaS). This document is the single source of truth for continuing the backend.
 
 ## Status: feature-complete across Sprints 1–5, compiles cleanly (`tsc --noEmit` → 0 errors)
 
