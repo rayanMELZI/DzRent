@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: dzrent_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dzrent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dzrent_dev_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-dzrent_dev}
+    ports: ["5432:5432"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dzrent} -d ${POSTGRES_DB:-dzrent_dev}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:7-alpine
+    container_name: dzrent_redis
+    restart: unless-stopped
+    ports: ["6379:6379"]
+    volumes: ["redis_data:/data"]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 10s, timeout: 5s, retries: 5 }
+  minio:
+    image: minio/minio:latest
+    container_name: dzrent_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["minio_data:/data"]
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

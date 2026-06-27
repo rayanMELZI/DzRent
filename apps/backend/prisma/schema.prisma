@@ -1,0 +1,1278 @@
+// ============================================================
+//  DzRent – Prisma Schema  (v2 — refined)
+//  NestJS + Prisma + PostgreSQL
+//  Algerian Car Rental Platform (Client PWA + Agency SaaS)
+//
+//  Global Design Rules (never break):
+//    ① All DateTime fields use @db.Timestamptz(0) — UTC storage,
+//      displayed in Africa/Algiers (UTC+1, no DST) at application layer.
+//    ② Phone numbers stored in E.164 format (+213XXXXXXXXX).
+//    ③ Multi-tenant: every agency-scoped entity carries agencyId FK.
+//      Row-Level Security (RLS) policies enforce isolation at DB layer.
+//    ④ Soft deletes via deletedAt on all mutable top-level entities.
+//    ⑤ Arabic (ar) + French (fr) content fields on all user-facing text.
+//    ⑥ All monetary amounts stored in Algerian Dinars (DZD) as Decimal.
+//    ⑦ Wilaya.id uses the official Algerian government code (1–58).
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearch"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL") // bypasses PgBouncer for migrate/seed (see DATABASE_SETUP.md)
+  extensions = [uuidOssp(map: "uuid-ossp"), postgis(map: "postgis"), pgcrypto(map: "pgcrypto")]
+}
+
+// ============================================================
+//  ENUMS
+// ============================================================
+
+enum UserRole {
+  CLIENT        // End customer renting a vehicle
+  AGENCY_OWNER  // Owns one or more agencies; full agency control
+  AGENCY_STAFF  // Employee of an agency (restricted permissions)
+  ADMIN         // DzRent platform super-admin
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION // Phone OTP not yet confirmed
+  ACTIVE
+  SUSPENDED            // Temporary block (fraud / policy violation)
+  BANNED               // Permanent ban — always linked to a BlacklistEntry
+}
+
+enum KycStatus {
+  NOT_SUBMITTED
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED // Document passed its legal validity date (CIN valid 10 yrs in DZ)
+}
+
+/// Mandatory document types for Algerian renters.
+/// Minimum required set before first booking: CIN + DRIVING_LICENSE + SELFIE.
+enum KycDocumentType {
+  CIN               // Carte Nationale d'Identite — primary national ID
+  DRIVING_LICENSE   // Permis de conduire (categories B minimum for standard vehicles)
+  SELFIE            // Liveness photo matched against CIN face
+  PROOF_OF_ADDRESS  // Facture (electricity/gas) or Attestation de residence
+  PASSPORT          // Accepted for foreign / diaspora renters
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+  OUT_OF_SERVICE
+  PENDING_INSPECTION // Awaiting visite technique renewal (legally cannot be rented)
+}
+
+/// Documents mandated by Algerian vehicle law.
+/// All three mandatory types must be valid before vehicle is listed as AVAILABLE.
+enum VehicleDocumentType {
+  CARTE_GRISE        // Certificate d'immatriculation — vehicle registration (mandatory)
+  INSURANCE_CERT     // Attestation d'assurance (mandatory; RC minimum by law)
+  VISITE_TECHNIQUE   // Technical inspection certificate (mandatory every 2 years)
+  GPS_CERTIFICATE    // GPS device homologation / type-approval certificate
+  CUSTOMS_CLEARANCE  // Required for all imported vehicles (vehicles purchased abroad)
+}
+
+enum FuelType {
+  ESSENCE   // Petrol / SP95 (Sans Plomb 95)
+  DIESEL    // Gasoil — dominant fuel type in Algeria
+  ELECTRIC  // Rare but growing in urban areas
+  HYBRID
+  GPL       // Liquefied Petroleum Gas — widely available at Naftal stations
+}
+
+enum TransmissionType {
+  MANUAL
+  AUTOMATIC
+}
+
+enum BookingStatus {
+  PENDING           // Submitted; awaiting agency approval
+  APPROVED          // Agency confirmed availability
+  AWAITING_PAYMENT  // Deposit / full payment required from client
+  PAID              // Payment captured; ready for vehicle pickup
+  ACTIVE            // Vehicle physically handed over to client
+  COMPLETED         // Vehicle returned; contract closed; deposit released
+  CANCELLED_CLIENT
+  CANCELLED_AGENCY
+  DISPUTED          // Damage claim, fraud report, or arbitration opened
+  NO_SHOW           // Client did not appear at agreed pickup time
+}
+
+/// Algerian payment landscape: CIB + Edahabia cards dominate;
+/// cash remains significant especially outside major cities.
+enum PaymentMethod {
+  CIB           // Carte Interbancaire — Algerian interbank debit/credit card
+  EDAHABIA      // Barid Al-Jazair (Algeria Post) prepaid card (very widespread)
+  CASH          // Physical cash; received and logged by agency staff
+  BANK_TRANSFER // Virement bancaire — for long-term or B2B rentals
+  CHEQUE        // Cheque bancaire — common for large security deposits
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED   // Pre-authorisation held (deposit workflow)
+  CAPTURED     // Amount fully charged
+  RELEASED     // Deposit returned to client on clean vehicle return
+  REFUNDED     // Full or partial refund issued
+  FAILED
+  CANCELLED
+}
+
+enum PaymentType {
+  BOOKING_PAYMENT  // Rental fee (full or partial pre-payment)
+  SECURITY_DEPOSIT // Caution / depot de garantie (blocked on client's card)
+  DEPOSIT_REFUND   // Deposit return after clean rental completion
+  DAMAGE_CHARGE    // Post-return damage billing
+  LATE_FEE         // Frais de retard (mandatory clause under Algerian contract law)
+  PLATFORM_FEE     // DzRent commission — internal ledger entry only
+}
+
+/// Minimum legal coverage in Algeria: Responsabilite Civile (third-party only).
+/// Agencies offering premium vehicles typically carry Tous Risques or better.
+enum InsuranceCoverageType {
+  THIRD_PARTY_ONLY    // Responsabilite civile — legal minimum in Algeria
+  COMPREHENSIVE       // Tous risques
+  COMPREHENSIVE_PLUS  // Tous risques + vol + bris de glace + assistance
+}
+
+enum DamageReportStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISPUTED
+  CLOSED_NO_CHARGE
+}
+
+enum BlacklistReason {
+  NON_RETURN            // Vehicle not returned at agreed time (potential theft)
+  DOCUMENT_FRAUD        // Fake CIN, forged permis, or identity impersonation
+  PAYMENT_DEFAULT       // Bounced cheque or repeated payment failure
+  VEHICLE_DAMAGE        // Serious damage not compensated
+  VIOLENT_BEHAVIOR      // Threats or violence toward agency staff
+  MULTIPLE_FRAUD_SIGNALS // Automated fraud engine triggered critical score
+  INSURANCE_FRAUD       // False accident or damage claim
+}
+
+enum MaintenanceType {
+  OIL_CHANGE
+  TYRE_REPLACEMENT
+  BRAKE_SERVICE
+  VISITE_TECHNIQUE_RENEWAL // Mandatory periodic technical inspection
+  ACCIDENT_REPAIR
+  GENERAL_SERVICE
+  GPS_DEVICE_REPLACEMENT
+  OTHER
+}
+
+enum StaffRole {
+  MANAGER    // Approves bookings; manages fleet and staff
+  AGENT      // Front-desk: check-in / check-out / contract signing
+  ACCOUNTANT // Payments, invoices, and financial reconciliation only
+  DISPATCHER // GPS monitoring, logistics, and geofence alerts
+}
+
+enum NotificationChannel {
+  SMS   // Primary channel — Twilio / Ooredoo / Mobilis gateway
+  PUSH  // Mobile push (FCM / APNs via PWA service worker)
+  EMAIL // Secondary channel (less reliable in Algeria; always SMS-first)
+}
+
+// ============================================================
+//  GEOGRAPHY — Wilayas (58 Algerian States)
+// ============================================================
+
+/// One of Algeria's 58 administrative wilayas (departments).
+/// The id field uses the OFFICIAL Algerian government wilaya code (1–58),
+/// not a generated UUID — it is a stable, universally-known reference.
+/// Used for regional pricing, agency location, legal jurisdiction, and
+/// client address validation.
+model Wilaya {
+  /// Official Algerian wilaya code (1 = Adrar … 58 = El Meniaa).
+  /// Do NOT use @default — this must always be the official government code.
+  id         Int     @id
+  code       String  @unique @db.VarChar(3) // Zero-padded: "01", "16", "31", "58"
+  nameAr     String  @db.VarChar(100)       // Arabic name (e.g. الجزائر)
+  nameFr     String  @db.VarChar(100)       // French name (e.g. Alger)
+  /// Geographic planning region used for logistics and pricing tiers.
+  /// Values: NORD_CENTRE | NORD_EST | NORD_OUEST | HAUTS_PLATEAUX | GRAND_SUD
+  regionCode String  @db.VarChar(20)
+  latitude   Decimal @db.Decimal(9, 6)
+  longitude  Decimal @db.Decimal(9, 6)
+  isActive   Boolean @default(true)
+
+  agencies        Agency[]
+  pricingRules    WilayaPricingRule[]
+  userAddresses   UserAddress[]
+  rentalContracts RentalContract[]
+
+  @@map("wilayas")
+}
+
+// ============================================================
+//  USER & IDENTITY
+// ============================================================
+
+/// Core identity record shared across all roles.
+/// Authentication is phone-first (OTP via Twilio / Ooredoo / Mobilis).
+/// A User's role determines which sub-profile exists (AgencyStaff, etc.).
+model User {
+  id        String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  /// E.164 format. Algerian numbers: +213 followed by 9 digits.
+  /// Mobile prefixes: 05, 06, 07 (Mobilis, Djezzy, Ooredoo).
+  phone     String     @unique @db.VarChar(20)
+  email     String?    @unique @db.VarChar(255)
+  firstName String     @db.VarChar(100)
+  lastName  String     @db.VarChar(100)
+  role      UserRole   @default(CLIENT)
+  status    UserStatus @default(PENDING_VERIFICATION)
+  /// UI language preference. Drives RTL layout for Arabic.
+  locale    String     @default("fr") @db.VarChar(5) // "fr" | "ar"
+  avatarUrl String?    @db.VarChar(500)
+
+  /// CIN (Carte Nationale d'Identite) number extracted from KYC documents.
+  /// Stored here for fast fraud / duplicate-identity checks without
+  /// joining to KycDocument on every booking request.
+  /// Format: 18-digit numeric string issued by the Algerian DGSN.
+  nationalIdNumber String? @db.VarChar(20)
+
+  // ── OTP / Session ───────────────────────────────────────────
+  otpHash      String?   @db.VarChar(255)        // bcrypt hash — never store raw OTP
+  otpExpiresAt DateTime? @db.Timestamptz(0)
+  otpAttempts  Int       @default(0)             // Lock account after 5 failed attempts
+  lastLoginAt  DateTime? @db.Timestamptz(0)
+  lastLoginIp  String?   @db.VarChar(45)         // IPv4 or IPv6
+
+  // ── Fraud scoring ────────────────────────────────────────────
+  // Computed asynchronously by the fraud engine; never writable via client API.
+  riskScore Int  @default(0)    // 0–100; >70 triggers manual review gate
+  riskFlags Json @default("[]") // String[] of active risk flag codes
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime  @updatedAt      @db.Timestamptz(0)
+  deletedAt DateTime?                 @db.Timestamptz(0) // Soft delete (GDPR erasure)
+
+  addresses        UserAddress[]
+  kycDocuments     KycDocument[]
+  bookings         Booking[]
+  reviews          Review[]
+  blacklistEntries BlacklistEntry[]  @relation("BlacklistedUser")
+  reportedBy       BlacklistEntry[]  @relation("ReportedByUser")
+  notifications    NotificationLog[]
+  agencyStaff      AgencyStaff?
+  ownedAgencies    Agency[]          @relation("AgencyOwner")
+  auditLogs        AuditLog[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([nationalIdNumber]) // Fast CIN duplicate / fraud check
+  @@index([status])
+  @@index([riskScore])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+/// Supports multiple saved addresses per user (home, work, etc.).
+model UserAddress {
+  id         String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId     String  @db.Uuid
+  wilayaId   Int
+  commune    String  @db.VarChar(150)  // Commune / district name
+  street     String? @db.VarChar(255)
+  postalCode String? @db.VarChar(10)
+  isPrimary  Boolean @default(false)
+  label      String? @db.VarChar(50)  // "Domicile", "Travail", "Autre"
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wilaya Wilaya @relation(fields: [wilayaId], references: [id])
+
+  @@index([userId])
+  @@map("user_addresses")
+}
+
+// ============================================================
+//  KYC — Know Your Customer
+// ============================================================
+
+/// Versioned KYC documents. Every re-upload creates a NEW record;
+/// prior versions are retained immutably for audit and dispute resolution.
+/// Only the latest APPROVED version is active for booking eligibility.
+///
+/// Algerian regulation: CIN + DRIVING_LICENSE + SELFIE required before
+/// any rental contract can be signed (Agency SaaS enforces this gate).
+model KycDocument {
+  id           String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId       String          @db.Uuid
+  documentType KycDocumentType
+  status       KycStatus       @default(PENDING_REVIEW)
+  /// Incremented on each re-upload. version=1 is always the initial submission.
+  version      Int             @default(1)
+
+  // ── Object storage ──────────────────────────────────────────
+  // AES-256 encrypted at rest. Never expose raw URL to client —
+  // always generate short-lived signed URLs in the application layer.
+  fileKey       String @db.VarChar(500)
+  fileMimeType  String @db.VarChar(100)
+  fileSizeBytes Int
+
+  // ── Document metadata (OCR-extracted or manually entered) ───
+  documentNumber String?   @db.VarChar(100) // CIN number, permis number, etc.
+  issuedAt       DateTime? @db.Timestamptz(0) // Date de delivrance
+  expiresAt      DateTime? @db.Timestamptz(0) // CIN expires every 10 years in Algeria
+  issuingWilaya  String?   @db.VarChar(100)   // Wilaya de delivrance (free text)
+
+  // ── Review workflow ─────────────────────────────────────────
+  reviewedBy      String?   @db.Uuid // Admin / KYC reviewer user ID
+  reviewedAt      DateTime? @db.Timestamptz(0)
+  rejectionReason String?   @db.Text
+  reviewNotes     String?   @db.Text // Internal notes — never shown to client
+
+  // ── Integrity ───────────────────────────────────────────────
+  /// SHA-256 hex digest of the raw uploaded file bytes.
+  /// Verified on each download to detect storage-level tampering.
+  fileHash String @db.VarChar(128)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime @updatedAt      @db.Timestamptz(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, documentType, status])
+  @@index([documentNumber])
+  @@index([status])
+  @@index([expiresAt]) // Expiry-alert cron job
+  @@map("kyc_documents")
+}
+
+// ============================================================
+//  AGENCY & STAFF
+// ============================================================
+
+/// A rental agency — the PRIMARY TENANT unit of the platform.
+/// One AGENCY_OWNER may manage multiple agencies (wilaya branches).
+/// All fleet, booking, and financial data is scoped to agencyId.
+model Agency {
+  id            String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ownerId       String  @db.Uuid
+  wilayaId      Int
+  name          String  @db.VarChar(200)
+  nameAr        String? @db.VarChar(200)        // Arabic trade name (required for bilingual UI)
+  slug          String  @unique @db.VarChar(100) // URL-safe lowercase identifier
+  description   String? @db.Text
+  descriptionAr String? @db.Text
+  logoUrl       String? @db.VarChar(500)
+
+  // ── Algerian commercial law — mandatory fiscal identifiers ──
+  /// Registre de commerce (RC) — issued by CNRC; required for legal operation.
+  registrationNo String? @db.VarChar(50)
+  /// NIF — Numero d'Identification Fiscale (tax ID); required for invoicing.
+  taxId          String? @db.VarChar(30)
+  /// Carte d'artisan — only for sole-trader agencies (auto-entrepreneur).
+  artisanCardNo  String? @db.VarChar(30)
+
+  // ── Contact ─────────────────────────────────────────────────
+  phone   String  @db.VarChar(20)    // E.164
+  email   String? @db.VarChar(255)
+  website String? @db.VarChar(255)
+
+  // ── Physical address ────────────────────────────────────────
+  address   String   @db.VarChar(500)
+  commune   String   @db.VarChar(150)
+  latitude  Decimal? @db.Decimal(9, 6)
+  longitude Decimal? @db.Decimal(9, 6)
+
+  // ── Platform onboarding state ───────────────────────────────
+  isVerified       Boolean   @default(false) // Set to true by DzRent admin after document review
+  verifiedAt       DateTime? @db.Timestamptz(0)
+  verifiedBy       String?   @db.Uuid        // Admin user who approved
+  isActive         Boolean   @default(true)
+  isSuspended      Boolean   @default(false)
+  suspensionReason String?   @db.Text
+
+  // ── Cross-agency blacklist federation ───────────────────────
+  /// When true, this agency's BlacklistEntries are shared with all
+  /// agencies that have acceptsBlacklist=true.
+  sharesBlacklist  Boolean @default(true)
+  /// When true, this agency blocks clients appearing in any shared blacklist.
+  acceptsBlacklist Boolean @default(true)
+
+  /// Commission rate override. Null = use PlatformConfig.default_commission_pct.
+  commissionRatePct Decimal? @db.Decimal(5, 2)
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime  @updatedAt      @db.Timestamptz(0)
+  deletedAt DateTime?                 @db.Timestamptz(0)
+
+  owner             User               @relation("AgencyOwner", fields: [ownerId], references: [id])
+  wilaya            Wilaya             @relation(fields: [wilayaId], references: [id])
+  staff             AgencyStaff[]
+  vehicles          Vehicle[]
+  bookings          Booking[]
+  pricingRules      WilayaPricingRule[]
+  blacklistEntries  BlacklistEntry[]
+  insurancePolicies InsurancePolicy[]
+  documents         AgencyDocument[]
+  reviews           Review[]
+
+  @@index([ownerId])
+  @@index([wilayaId])
+  @@index([isVerified, isActive])
+  @@index([slug])
+  @@index([deletedAt])
+  @@map("agencies")
+}
+
+/// Legal and compliance documents submitted by the agency for platform verification.
+/// DzRent admin reviews these before setting Agency.isVerified = true.
+model AgencyDocument {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  agencyId     String    @db.Uuid
+  /// Type codes: "RC" | "NIF" | "local_permit" | "bank_details" | "insurance_broker_cert"
+  documentType String    @db.VarChar(100)
+  fileKey      String    @db.VarChar(500)
+  fileMimeType String    @db.VarChar(100)
+  isApproved   Boolean   @default(false)
+  reviewedAt   DateTime? @db.Timestamptz(0)
+  reviewedBy   String?   @db.Uuid
+  notes        String?   @db.Text
+  createdAt    DateTime  @default(now()) @db.Timestamptz(0)
+
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId])
+  @@map("agency_documents")
+}
+
+/// Agency staff member record. A User with role=AGENCY_STAFF must have
+/// a corresponding AgencyStaff row linking them to a specific agency.
+/// Permissions are additive on top of StaffRole (stored as a flag array).
+model AgencyStaff {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String    @unique @db.Uuid
+  agencyId  String    @db.Uuid
+  staffRole StaffRole @default(AGENT)
+  isActive  Boolean   @default(true)
+
+  /// Fine-grained permission flags beyond the base StaffRole.
+  /// e.g. ["approve_booking", "view_gps", "issue_refund", "manage_blacklist"]
+  /// Evaluated in NestJS CASL ability builder, not enforced at DB level.
+  permissions Json @default("[]")
+
+  hiredAt   DateTime  @default(now()) @db.Timestamptz(0)
+  firedAt   DateTime?                 @db.Timestamptz(0)
+  createdAt DateTime  @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime  @updatedAt      @db.Timestamptz(0)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId])
+  @@map("agency_staff")
+}
+
+// ============================================================
+//  VEHICLE
+// ============================================================
+
+/// A vehicle in an agency's fleet.
+/// All DzRent vehicles MUST carry a GPS tracker (platform policy).
+/// The three compliance flags (hasValidInsurance, hasValidVisite, hasGpsDevice)
+/// are computed by a background job and gate AVAILABLE status.
+model Vehicle {
+  id           String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  agencyId     String        @db.Uuid
+  /// Unique nationwide in Algeria — the ANPR (plaque d'immatriculation) system
+  /// guarantees no two registered vehicles share the same plate.
+  /// Algerian format: NNNNNN-WW (6 digits, dash, 2-digit wilaya code).
+  /// e.g. "123456-16" = registered in Alger (wilaya 16).
+  licensePlate  String        @unique @db.VarChar(20)
+  chassisNumber String        @unique @db.VarChar(50) // VIN / Numero de chassis
+  make          String        @db.VarChar(100)        // e.g. "Renault", "Hyundai", "Peugeot"
+  model         String        @db.VarChar(100)        // e.g. "Symbol", "Tucson", "208"
+  year          Int
+  color         String        @db.VarChar(50)
+  fuelType      FuelType
+  transmission  TransmissionType
+  seats         Int           @default(5)
+  doors         Int           @default(4)
+  trunkVolumeLiters Int?
+  /// Current real odometer reading in kilometres.
+  /// Updated by agency staff at every pickup and return event.
+  /// Used to compute extra-km charges and schedule maintenance intervals.
+  currentMileageKm Int        @default(0)
+
+  categoryId String        @db.Uuid
+  status     VehicleStatus @default(AVAILABLE)
+
+  // ── GPS Tracker ─────────────────────────────────────────────
+  // Mandatory for all DzRent-listed vehicles (platform policy §4.2).
+  // Devices must be homologated; certificate uploaded as VehicleDocument.
+  gpsDeviceId   String?   @unique @db.VarChar(100) // Hardware serial number
+  gpsImei       String?   @unique @db.VarChar(20)  // SIM card IMEI
+  gpsLastPingAt DateTime?                @db.Timestamptz(0) // Last heartbeat received
+
+  // ── Pricing (per-vehicle override) ──────────────────────────
+  // Falls back to WilayaPricingRule for the vehicle's wilaya + category
+  // if these fields are null.
+  dailyRateDA     Decimal? @db.Decimal(12, 2)
+  weeklyRateDA    Decimal? @db.Decimal(12, 2)
+  monthlyRateDA   Decimal? @db.Decimal(12, 2)
+  depositAmountDA Decimal  @db.Decimal(12, 2) @default(0) // Caution / depot de garantie
+
+  // ── Availability window ─────────────────────────────────────
+  // null = vehicle is rentable whenever status = AVAILABLE
+  availableFrom  DateTime? @db.Timestamptz(0)
+  availableUntil DateTime? @db.Timestamptz(0)
+
+  // ── Features ────────────────────────────────────────────────
+  // String array of option codes; rendered as toggles in search filters.
+  // e.g. ["AC", "GPS_SCREEN", "CHILD_SEAT", "SUNROOF", "BLUETOOTH"]
+  features String[]
+
+  // ── Media ───────────────────────────────────────────────────
+  // Array of object-storage keys. Application generates signed URLs.
+  photos String[]
+
+  // ── Compliance flags (computed, not user-editable) ──────────
+  hasValidInsurance Boolean @default(false) // Active InsurancePolicy.endDate > now()
+  hasValidVisite    Boolean @default(false) // Active VISITE_TECHNIQUE doc expiry > now()
+  hasGpsDevice      Boolean @default(false) // gpsDeviceId IS NOT NULL
+
+  notes     String?   @db.Text
+  createdAt DateTime  @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime  @updatedAt      @db.Timestamptz(0)
+  deletedAt DateTime?                 @db.Timestamptz(0)
+
+  agency            Agency             @relation(fields: [agencyId], references: [id], onDelete: Restrict)
+  category          VehicleCategory    @relation(fields: [categoryId], references: [id])
+  documents         VehicleDocument[]
+  maintenanceLogs   VehicleMaintenance[]
+  bookings          Booking[]
+  gpsLogs           GpsTrackingLog[]
+  damageReports     DamageReport[]
+  insurancePolicies InsurancePolicy[]
+  reviews           Review[]
+
+  @@index([agencyId, status])
+  @@index([licensePlate])
+  @@index([gpsDeviceId])
+  @@index([categoryId])
+  @@index([status, deletedAt])
+  // Composite index for vehicle availability overlap queries:
+  // "Find all active bookings for vehicleId overlapping [from, until]"
+  @@index([agencyId, status, availableFrom, availableUntil])
+  @@map("vehicles")
+}
+
+/// Seeded lookup table for vehicle categories used in search and pricing.
+model VehicleCategory {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  /// URL-safe slug. Seeded values:
+  /// citadine | berline | break | suv | suv-luxe | utilitaire | minivan | prestige
+  slug        String  @unique @db.VarChar(50)
+  nameFr      String  @db.VarChar(100)
+  nameAr      String  @db.VarChar(100)
+  description String? @db.Text
+  iconKey     String? @db.VarChar(100) // Icon identifier used by frontend icon registry
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  vehicles Vehicle[]
+
+  @@map("vehicle_categories")
+}
+
+/// Versioned vehicle compliance documents with expiry tracking.
+/// A cron job checks expiresAt daily and sets Vehicle.hasValidVisite/
+/// hasValidInsurance accordingly, and sends alerts to agency staff.
+model VehicleDocument {
+  id             String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  vehicleId      String              @db.Uuid
+  documentType   VehicleDocumentType
+  /// Incremented on re-upload. Prior versions are retained for audit.
+  version        Int                 @default(1)
+  fileKey        String              @db.VarChar(500)
+  fileMimeType   String              @db.VarChar(100)
+  documentNumber String?             @db.VarChar(100)
+  issuedAt       DateTime?           @db.Timestamptz(0)
+  /// Critical field: drives compliance alerts and AVAILABLE gate.
+  expiresAt      DateTime?           @db.Timestamptz(0)
+  isVerified     Boolean             @default(false)
+  verifiedAt     DateTime?           @db.Timestamptz(0)
+  verifiedBy     String?             @db.Uuid
+  notes          String?             @db.Text
+  createdAt      DateTime            @default(now()) @db.Timestamptz(0)
+  updatedAt      DateTime            @updatedAt      @db.Timestamptz(0)
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, documentType])
+  @@index([expiresAt]) // Expiry-alert cron job
+  @@map("vehicle_documents")
+}
+
+/// Records all maintenance events for vehicle lifecycle management.
+/// nextServiceAt / nextServiceKm drive proactive maintenance alerts.
+model VehicleMaintenance {
+  id                 String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  vehicleId          String          @db.Uuid
+  maintenanceType    MaintenanceType
+  mileageAtServiceKm Int
+  performedAt        DateTime        @db.Timestamptz(0)
+  nextServiceAt      DateTime?       @db.Timestamptz(0)
+  nextServiceKm      Int?
+  costDA             Decimal?        @db.Decimal(12, 2)
+  performedBy        String?         @db.VarChar(200) // Garage or mechanic name
+  notes              String?         @db.Text
+  receiptKey         String?         @db.VarChar(500) // Receipt PDF in object storage
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+  createdBy String?  @db.Uuid        // Agency staff who logged this entry
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, performedAt])
+  @@index([nextServiceAt])
+  @@map("vehicle_maintenance")
+}
+
+// ============================================================
+//  PRICING
+// ============================================================
+
+/// Wilaya-specific pricing per vehicle category per agency.
+/// Rationale: southern wilayas (Tamanrasset W11, Illizi W33, Tindouf W37)
+/// have higher operating costs (fuel, logistics) justifying premium rates.
+/// Falls back to Vehicle.dailyRateDA if no rule exists for the combination.
+model WilayaPricingRule {
+  id           String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  agencyId     String  @db.Uuid
+  wilayaId     Int
+  /// References VehicleCategory.slug (not FK to avoid join complexity in pricing engine).
+  categorySlug String  @db.VarChar(50)
+
+  dailyRateDA     Decimal @db.Decimal(12, 2)
+  weeklyRateDA    Decimal @db.Decimal(12, 2)
+  monthlyRateDA   Decimal @db.Decimal(12, 2)
+  depositAmountDA Decimal @db.Decimal(12, 2)
+
+  /// TVA (standard 19%) + any wilaya-specific commune surcharges.
+  taxRatePct Decimal @db.Decimal(5, 2)
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime @updatedAt      @db.Timestamptz(0)
+
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  wilaya Wilaya @relation(fields: [wilayaId], references: [id])
+
+  @@unique([agencyId, wilayaId, categorySlug])
+  @@index([wilayaId, categorySlug])
+  @@map("wilaya_pricing_rules")
+}
+
+// ============================================================
+//  BOOKING & RENTAL CONTRACT
+// ============================================================
+
+/// A rental request initiated by a client through the PWA.
+/// Lifecycle: PENDING → APPROVED → AWAITING_PAYMENT → PAID → ACTIVE → COMPLETED.
+/// On transition to PAID, the system auto-generates a RentalContract PDF.
+model Booking {
+  id         String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  /// Human-readable reference shown to clients and agency staff.
+  /// Format: DZR-YYYY-XXXXX (e.g. DZR-2024-00142).
+  bookingRef String        @unique @db.VarChar(20)
+  clientId   String        @db.Uuid
+  agencyId   String        @db.Uuid
+  vehicleId  String        @db.Uuid
+  status     BookingStatus @default(PENDING)
+
+  // ── Rental period ────────────────────────────────────────────
+  // All stored in UTC. Application layer converts to Africa/Algiers
+  // (UTC+1, no DST) for display. Use requestedFrom/Until for search;
+  // confirmedFrom/Until are the legally binding contract dates.
+  requestedFrom  DateTime  @db.Timestamptz(0)
+  requestedUntil DateTime  @db.Timestamptz(0)
+  confirmedFrom  DateTime? @db.Timestamptz(0)
+  confirmedUntil DateTime? @db.Timestamptz(0)
+  actualPickupAt DateTime? @db.Timestamptz(0) // Timestamp vehicle physically handed over
+  actualReturnAt DateTime? @db.Timestamptz(0) // Timestamp vehicle returned
+
+  // ── Location ─────────────────────────────────────────────────
+  pickupWilayaId Int?
+  pickupAddress  String?  @db.VarChar(500)
+  returnAddress  String?  @db.VarChar(500) // Differs from pickup for one-way rentals
+  isOneWay       Boolean  @default(false)
+
+  // ── Price snapshot ───────────────────────────────────────────
+  // Captured IMMUTABLY at booking confirmation. Future price changes
+  // never affect historical bookings — critical for financial audit.
+  dailyRateDA       Decimal @db.Decimal(12, 2)
+  totalDays         Int
+  subtotalDA        Decimal @db.Decimal(12, 2)
+  discountDA        Decimal @db.Decimal(12, 2) @default(0)
+  taxAmountDA       Decimal @db.Decimal(12, 2)
+  insuranceAmountDA Decimal @db.Decimal(12, 2) @default(0)
+  depositAmountDA   Decimal @db.Decimal(12, 2) // Caution required at pickup
+  totalAmountDA     Decimal @db.Decimal(12, 2) // Grand total charged to client
+
+  // ── Mileage policy ───────────────────────────────────────────
+  includedKm    Int?     // km included in quoted price (null = unlimited)
+  extraKmRateDA Decimal? @db.Decimal(10, 2) // Per-km surcharge in DA
+
+  // ── Odometer (recorded by agency staff at handover) ──────────
+  mileageAtPickupKm Int?
+  mileageAtReturnKm Int?
+
+  // ── Options ──────────────────────────────────────────────────
+  additionalDrivers Int     @default(0)  // Number of additional authorised drivers
+  hasChildSeat      Boolean @default(false)
+  hasGpsScreen      Boolean @default(false)
+  notes             String? @db.Text     // Client's special requests
+  agencyNotes       String? @db.Text     // Internal agency notes (not visible to client)
+
+  // ── Cancellation ─────────────────────────────────────────────
+  cancelledAt        DateTime? @db.Timestamptz(0)
+  cancelledBy        String?   @db.Uuid
+  cancellationReason String?   @db.Text
+
+  /// JSON snapshot of the cancellation policy rules active at the moment
+  /// this booking was created. Protects against retroactive policy changes
+  /// in legal disputes. Structure mirrors PlatformConfig cancellation rules.
+  /// e.g. { "free_cancel_hours": 24, "partial_refund_pct": 50, "no_refund_hours": 6 }
+  cancellationPolicySnapshot Json?
+
+  // ── KYC gate ─────────────────────────────────────────────────
+  // Snapshot of verification status at booking creation. Even if KYC
+  // expires after booking, the approval is locked here for audit.
+  kycVerifiedAt DateTime? @db.Timestamptz(0)
+  kycApprovedBy String?   @db.Uuid
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime @updatedAt      @db.Timestamptz(0)
+
+  client         User            @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  agency         Agency          @relation(fields: [agencyId], references: [id], onDelete: Restrict)
+  vehicle        Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  rentalContract RentalContract?
+  payments       Payment[]
+  damageReports  DamageReport[]
+
+  // Core availability check: overlapping bookings for same vehicle
+  @@index([vehicleId, requestedFrom, requestedUntil])
+  @@index([clientId, status])
+  @@index([agencyId, status])
+  @@index([bookingRef])
+  @@index([status])
+  @@map("bookings")
+}
+
+/// The legally-binding rental contract generated from a confirmed + paid booking.
+/// PDF generated server-side using LegalClause templates (Arabic + French).
+/// Algerian law requires a signed contract before vehicle handover.
+model RentalContract {
+  id          String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  bookingId   String @unique @db.Uuid
+  contractRef String @unique @db.VarChar(30) // e.g. CTR-2024-00142
+  /// Wilaya where the contract is signed — determines local legal jurisdiction.
+  wilayaId    Int?
+
+  // ── Generated PDFs ───────────────────────────────────────────
+  contractPdfKey String? @db.VarChar(500) // Pre-signature draft
+  signedPdfKey   String? @db.VarChar(500) // Post e-signature final version
+
+  // ── E-signature ──────────────────────────────────────────────
+  clientSignedAt      DateTime? @db.Timestamptz(0)
+  /// HMAC-SHA256 over (contractRef + userId + timestamp) — proof of signing event.
+  clientSignatureHash String?   @db.VarChar(255)
+  clientSignatureIp   String?   @db.VarChar(45)
+  agencySignedAt      DateTime? @db.Timestamptz(0)
+  agencySignerUserId  String?   @db.Uuid
+
+  /// Array of LegalClause.clauseCode values applied to this contract.
+  /// Stored as snapshot so contract meaning never changes if clauses are updated.
+  /// e.g. ["dz_late_return_penalty_v2", "dz_damage_liability_v1", "dz_deposit_v1"]
+  appliedClauses Json @default("[]")
+
+  // ── Vehicle condition at handover ────────────────────────────
+  // Photos and notes form the basis for any post-return damage claim.
+  pickupConditionPhotos String[] // Object storage keys
+  pickupConditionNotes  String?  @db.Text
+  pickupFuelLevel       Int?     // 0–100 percent
+  returnConditionPhotos String[]
+  returnConditionNotes  String?  @db.Text
+  returnFuelLevel       Int?
+
+  // ── Late-return penalty ──────────────────────────────────────
+  // Mandatory under Algerian contract law. Computed at return time.
+  lateReturnPenaltyDA Decimal @db.Decimal(12, 2) @default(0)
+  lateReturnHours     Int     @default(0)
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime @updatedAt      @db.Timestamptz(0)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  wilaya  Wilaya? @relation(fields: [wilayaId], references: [id])
+
+  @@index([bookingId])
+  @@index([contractRef])
+  @@map("rental_contracts")
+}
+
+// ============================================================
+//  PAYMENTS
+// ============================================================
+
+/// All financial transactions on the platform.
+/// Security deposits (caution) flow: AUTHORIZED → RELEASED (clean return)
+/// or AUTHORIZED → CAPTURED (damage/late fee deducted).
+model Payment {
+  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  bookingId   String        @db.Uuid
+  paymentRef  String        @unique @db.VarChar(50)  // Internal DzRent reference
+  externalRef String?       @db.VarChar(200)         // CIB / Edahabia gateway transaction ID
+
+  paymentType   PaymentType
+  paymentMethod PaymentMethod
+  status        PaymentStatus @default(PENDING)
+
+  amountDA    Decimal @db.Decimal(12, 2)
+  feeDA       Decimal @db.Decimal(12, 2) @default(0) // Gateway processing fee
+  netAmountDA Decimal @db.Decimal(12, 2)              // amountDA - feeDA (agency revenue)
+
+  currency String @default("DZD") @db.VarChar(3) // ISO 4217
+
+  /// Raw gateway response payload (CIB SATIM / Edahabia API).
+  /// Stored for dispute resolution and chargeback evidence.
+  gatewayResponse Json?
+
+  // ── State timestamps ─────────────────────────────────────────
+  authorizedAt  DateTime? @db.Timestamptz(0) // Deposit pre-auth moment
+  capturedAt    DateTime? @db.Timestamptz(0)
+  releasedAt    DateTime? @db.Timestamptz(0) // Deposit returned on clean return
+  refundedAt    DateTime? @db.Timestamptz(0)
+  failedAt      DateTime? @db.Timestamptz(0)
+  failureReason String?   @db.Text
+
+  // ── Cash handling ────────────────────────────────────────────
+  receivedBy String?   @db.Uuid // Agency staff who physically received cash
+  receivedAt DateTime? @db.Timestamptz(0)
+
+  // ── Reconciliation ───────────────────────────────────────────
+  reconciledAt DateTime? @db.Timestamptz(0)
+  reconciledBy String?   @db.Uuid
+
+  metadata Json? // Arbitrary gateway or internal metadata
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime @updatedAt      @db.Timestamptz(0)
+
+  booking  Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  invoices Invoice[]
+
+  @@index([bookingId])
+  @@index([status, paymentType])
+  @@index([externalRef])
+  @@index([paymentMethod, status])
+  @@map("payments")
+}
+
+/// Invoice linked to a payment. Algerian fiscal law requires:
+///   ① Sequential invoice numbers per agency (no gaps allowed).
+///   ② TVA breakdown shown explicitly.
+///   ③ Agency RC + NIF printed on the invoice.
+model Invoice {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  /// Sequential reference — generated by a per-agency DB sequence in application layer.
+  invoiceRef String   @unique @db.VarChar(30)
+  paymentId  String   @db.Uuid
+  agencyId   String   @db.Uuid
+
+  subtotalDA  Decimal @db.Decimal(12, 2)
+  taxAmountDA Decimal @db.Decimal(12, 2)
+  totalDA     Decimal @db.Decimal(12, 2)
+  taxRatePct  Decimal @db.Decimal(5, 2) // Standard TVA = 19% in Algeria
+
+  issuedAt DateTime @default(now()) @db.Timestamptz(0)
+  pdfKey   String?  @db.VarChar(500) // Generated invoice PDF in object storage
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+  @@index([agencyId, issuedAt])
+  @@map("invoices")
+}
+
+// ============================================================
+//  GPS TRACKING
+// ============================================================
+
+/// High-frequency GPS pings ingested from vehicle hardware trackers.
+/// Expected volume: ~1 ping per 30 seconds per active vehicle.
+///
+/// Production scaling notes:
+///   ① Use pg_partman RANGE partitioning on recordedAt (monthly partitions).
+///   ② Or use TimescaleDB hypertable for time-series compression.
+///   ③ Add a PostGIS geography column via raw migration (Prisma does not manage it):
+///      ALTER TABLE gps_tracking_logs ADD COLUMN location geography(Point,4326)
+///        GENERATED ALWAYS AS (ST_SetSRID(ST_Point(longitude,latitude),4326)) STORED;
+///      CREATE INDEX ON gps_tracking_logs USING GIST (location);
+model GpsTrackingLog {
+  id        BigInt  @id @default(autoincrement()) // BigInt; UUID PKs cause btree bloat on hot inserts
+  vehicleId String  @db.Uuid
+  bookingId String? @db.Uuid // Null when vehicle is idle between rentals
+  deviceId  String  @db.VarChar(100) // GPS hardware serial number
+
+  // ── Coordinates ──────────────────────────────────────────────
+  // Stored as Decimal for direct SQL usage.
+  // PostGIS geography point added via raw ALTER TABLE (see notes above).
+  latitude   Decimal  @db.Decimal(9, 6)
+  longitude  Decimal  @db.Decimal(9, 6)
+  altitudeM  Decimal? @db.Decimal(8, 2)
+  speedKmh   Decimal? @db.Decimal(6, 2)
+  headingDeg Int?     // 0–359 compass bearing
+  accuracyM  Decimal? @db.Decimal(8, 2) // GPS fix accuracy radius in metres
+
+  // ── Real-time event flags ────────────────────────────────────
+  isIgnitionOn        Boolean @default(false)
+  isSpeeding          Boolean @default(false) // Speed > agency-configured threshold
+  isGeofenceViolation Boolean @default(false) // Vehicle outside permitted rental zone
+
+  recordedAt DateTime @default(now()) @db.Timestamptz(0) // UTC; derived from device clock
+  receivedAt DateTime @default(now()) @db.Timestamptz(0) // Server ingestion timestamp
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  // Two dominant query patterns:
+  // ① "History of vehicle X between time A and B" (agency dashboard replay)
+  // ② "All geofence violations in the last N minutes" (real-time alert service)
+  @@index([vehicleId, recordedAt(sort: Desc)])
+  @@index([bookingId, recordedAt(sort: Desc)])
+  @@index([isGeofenceViolation, recordedAt])
+  @@index([deviceId, recordedAt])
+  @@map("gps_tracking_logs")
+}
+
+// ============================================================
+//  INSURANCE
+// ============================================================
+
+/// Insurance policies for agency vehicles.
+/// Algerian law (Ordonnance 95-07) mandates minimum RC coverage.
+/// Vehicle cannot appear as AVAILABLE if no active policy exists.
+model InsurancePolicy {
+  id               String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  vehicleId        String                @db.Uuid
+  agencyId         String                @db.Uuid
+  coverageType     InsuranceCoverageType
+  /// Algerian insurance providers: CAAT, SAA, CAAR, TRUST, Alliance, Cardif, Salama.
+  providerName     String                @db.VarChar(200)
+  policyNumber     String                @db.VarChar(100)
+  coverageAmountDA Decimal               @db.Decimal(15, 2)
+  premiumDA        Decimal               @db.Decimal(12, 2) // Annual premium in DA
+  startDate        DateTime              @db.Timestamptz(0)
+  /// Must be future-dated for vehicle to remain in AVAILABLE status.
+  endDate          DateTime              @db.Timestamptz(0)
+  documentKey      String?               @db.VarChar(500)   // Insurance certificate PDF
+  isActive         Boolean               @default(true)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime @updatedAt      @db.Timestamptz(0)
+
+  vehicle       Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  agency        Agency         @relation(fields: [agencyId], references: [id], onDelete: Restrict)
+  damageReports DamageReport[]
+
+  @@index([vehicleId, isActive])
+  @@index([endDate]) // Expiry-alert cron
+  @@map("insurance_policies")
+}
+
+// ============================================================
+//  DAMAGE REPORTS
+// ============================================================
+
+/// Damage or loss claim raised by an agency after vehicle return.
+/// May trigger: client deposit deduction, insurance claim, or blacklisting.
+/// Police report (PV de police) is legally mandatory in Algeria for
+/// any accident involving third parties or theft.
+model DamageReport {
+  id          String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  bookingId   String             @db.Uuid
+  vehicleId   String             @db.Uuid
+  reportedBy  String             @db.Uuid // Agency staff user ID
+  insuranceId String?            @db.Uuid
+
+  status        DamageReportStatus @default(OPEN)
+  description   String             @db.Text
+  descriptionAr String?            @db.Text
+
+  // ── Evidence ─────────────────────────────────────────────────
+  photoKeys       String[] // Before/after photos in object storage
+  policeReportNo  String?  @db.VarChar(100) // PV de police reference number
+  policeReportKey String?  @db.VarChar(500) // Police report PDF
+
+  // ── Financial settlement ─────────────────────────────────────
+  estimatedCostDA  Decimal? @db.Decimal(12, 2) // Initial garage estimate
+  finalCostDA      Decimal? @db.Decimal(12, 2) // Post-repair final cost
+  clientChargedDA  Decimal? @db.Decimal(12, 2) // Amount billed to client (from deposit)
+  insuranceClaimDA Decimal? @db.Decimal(12, 2) // Amount submitted to insurer
+
+  // ── Resolution ───────────────────────────────────────────────
+  resolvedAt      DateTime? @db.Timestamptz(0)
+  resolvedBy      String?   @db.Uuid
+  resolutionNotes String?   @db.Text
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime @updatedAt      @db.Timestamptz(0)
+
+  booking         Booking          @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  insurancePolicy InsurancePolicy? @relation(fields: [insuranceId], references: [id])
+
+  @@index([bookingId])
+  @@index([vehicleId, status])
+  @@index([status])
+  @@map("damage_reports")
+}
+
+// ============================================================
+//  BLACKLIST & FRAUD
+// ============================================================
+
+/// Cross-agency blacklist for high-risk clients.
+/// Federation model:
+///   - sharesBlacklist agencies contribute entries (visible platform-wide).
+///   - acceptsBlacklist agencies gate new bookings against the shared list.
+///   - PRIVATE entries (isShared=false) are only visible to the reporting agency.
+/// A client with ANY isActive=true entry is blocked at booking creation.
+model BlacklistEntry {
+  id           String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId       String          @db.Uuid
+  reportedById String          @db.Uuid // Agency owner or staff user ID
+  agencyId     String          @db.Uuid // Reporting agency
+  reason       BlacklistReason
+  description  String          @db.Text // Detailed incident description (used in dispute)
+  evidenceKeys String[]        // Evidence files (photos, PVs, screenshots)
+  bookingId    String?         @db.Uuid // Associated booking reference
+
+  isShared Boolean @default(true)  // false = private to reporting agency only
+  isActive Boolean @default(true)
+
+  // ── DzRent admin oversight ───────────────────────────────────
+  reviewedByAdmin Boolean   @default(false)
+  adminReviewedAt DateTime? @db.Timestamptz(0)
+  adminNotes      String?   @db.Text
+
+  /// Optional expiry — minor violations may be cleared after 1 year.
+  expiresAt DateTime? @db.Timestamptz(0)
+  createdAt DateTime  @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime  @updatedAt      @db.Timestamptz(0)
+
+  user       User   @relation("BlacklistedUser", fields: [userId], references: [id], onDelete: Restrict)
+  reportedBy User   @relation("ReportedByUser", fields: [reportedById], references: [id], onDelete: Restrict)
+  agency     Agency @relation(fields: [agencyId], references: [id], onDelete: Restrict)
+
+  @@index([userId, isActive])
+  @@index([agencyId])
+  @@index([isShared, isActive])
+  @@map("blacklist_entries")
+}
+
+/// Automated fraud signal raised by the platform fraud engine.
+/// Signals accumulate into User.riskScore (async job).
+/// Resolved by admin review; unresolved signals gate booking creation.
+///
+/// Signal types (non-exhaustive):
+///   MULTIPLE_CONCURRENT_BOOKINGS | VPN_DETECTED | DOCUMENT_MISMATCH
+///   VELOCITY_ABUSE | BLACKLISTED_DEVICE_ID | DISPOSABLE_PHONE_NUMBER
+///   CIN_DUPLICATE | SUSPICIOUS_GPS_PATTERN
+model FraudSignal {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId      String    @db.Uuid
+  signalType  String    @db.VarChar(100)
+  severity    Int       // 1 (low) – 5 (critical); contributes to riskScore
+  description String    @db.Text
+  metadata    Json?     // Raw payload from fraud detection service
+  isResolved  Boolean   @default(false)
+  resolvedAt  DateTime? @db.Timestamptz(0)
+  resolvedBy  String?   @db.Uuid // Admin who cleared the flag
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+
+  @@index([userId, isResolved])
+  @@index([signalType, createdAt])
+  @@map("fraud_signals")
+}
+
+// ============================================================
+//  REVIEWS & RATINGS
+// ============================================================
+
+/// Client review submitted after a COMPLETED rental.
+/// Moderated by DzRent admin before public display.
+/// Agencies may post a single reply (agencyResponse).
+model Review {
+  id        String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clientId  String  @db.Uuid
+  agencyId  String  @db.Uuid
+  vehicleId String? @db.Uuid // Optional vehicle-level review alongside agency review
+
+  overallRating     Int  // 1–5 stars (mandatory)
+  cleanlinessRating Int? // 1–5
+  serviceRating     Int? // 1–5
+  valueRating       Int? // 1–5
+
+  comment   String? @db.Text
+  commentAr String? @db.Text // Arabic version of the review comment
+
+  // ── Moderation ───────────────────────────────────────────────
+  isApproved  Boolean   @default(false)
+  isHidden    Boolean   @default(false) // Admin or agency flag (abuse / spam)
+  moderatedAt DateTime? @db.Timestamptz(0)
+  moderatedBy String?   @db.Uuid
+
+  // ── Agency reply ─────────────────────────────────────────────
+  agencyResponse   String?   @db.Text
+  agencyResponseAt DateTime? @db.Timestamptz(0)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime @updatedAt      @db.Timestamptz(0)
+
+  client  User     @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  agency  Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  @@unique([clientId, agencyId, vehicleId]) // One review per rental relationship
+  @@index([agencyId, isApproved])
+  @@index([vehicleId, isApproved])
+  @@map("reviews")
+}
+
+// ============================================================
+//  NOTIFICATIONS
+// ============================================================
+
+/// Outbound notification log for all channels (SMS, Push, Email).
+/// Every notification stored for audit, retry logic, and debugging.
+/// SMS is the primary and most reliable channel in Algeria.
+model NotificationLog {
+  id          String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId      String              @db.Uuid
+  channel     NotificationChannel
+  /// Template ID determines language variant (e.g. "BOOKING_CONFIRMED_FR" | "BOOKING_CONFIRMED_AR").
+  templateId  String              @db.VarChar(100)
+  payload     Json                // Rendered message content (subject, body, variables)
+  isDelivered Boolean             @default(false)
+  deliveredAt DateTime?           @db.Timestamptz(0)
+  failureReason String?           @db.Text
+  externalRef String?             @db.VarChar(200) // Provider message SID (Twilio, FCM, etc.)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, channel])
+  @@index([isDelivered, createdAt])
+  @@map("notification_logs")
+}
+
+// ============================================================
+//  AUDIT LOG
+// ============================================================
+
+/// Immutable append-only audit trail for all state-changing operations.
+/// Required by Algerian Law 18-05 on electronic commerce (Article 9 — traceability).
+/// Records are NEVER soft-deleted. Retention: minimum 5 years by regulation.
+model AuditLog {
+  id         BigInt  @id @default(autoincrement()) // BigInt; append-only
+  userId     String? @db.Uuid // Null for system / scheduled-job actions
+  /// Entity class name: "Booking" | "KycDocument" | "Vehicle" | "BlacklistEntry" …
+  entityType String  @db.VarChar(100)
+  entityId   String  @db.VarChar(100)
+  /// Action code: "STATUS_CHANGED" | "DOCUMENT_APPROVED" | "BLACKLIST_ADDED" …
+  action     String  @db.VarChar(100)
+  oldValue   Json?   // Previous state snapshot (only changed fields)
+  newValue   Json?   // New state snapshot (only changed fields)
+  ipAddress  String? @db.VarChar(45)
+  userAgent  String? @db.VarChar(500)
+  metadata   Json?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================================
+//  LEGAL CLAUSE LIBRARY
+// ============================================================
+
+/// Versioned library of Algerian-specific legal clauses inserted into
+/// rental contracts. Clauses may be wilaya-scoped (some regions enforce
+/// additional local regulations, e.g. specific wilaya security deposit rules).
+///
+/// Mandatory clauses (isMandatory=true) are always included regardless
+/// of agency configuration. Optional clauses can be toggled per agency.
+model LegalClause {
+  id          String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  /// Stable, versioned code used as reference in RentalContract.appliedClauses.
+  /// Format: dz_{topic}_{version} e.g. "dz_late_return_penalty_v2"
+  clauseCode  String @unique @db.VarChar(100)
+  titleFr     String @db.VarChar(300)
+  titleAr     String @db.VarChar(300)
+  contentFr   String @db.Text
+  contentAr   String @db.Text
+  version     String @db.VarChar(20) // Semantic version: "1.0.0", "2.1.0"
+  isActive    Boolean @default(true)
+  /// Always included in every contract regardless of agency preferences.
+  isMandatory Boolean @default(false)
+
+  /// Null = applies nationally to all 58 wilayas.
+  /// Non-null = only inserted when contract.wilayaId is in this array.
+  applicableWilayaIds Int[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt DateTime @updatedAt      @db.Timestamptz(0)
+
+  @@index([isActive, isMandatory])
+  @@map("legal_clauses")
+}
+
+// ============================================================
+//  PLATFORM CONFIGURATION
+// ============================================================
+
+/// Key-value store for platform-wide operational settings.
+/// Managed exclusively by ADMIN users via the admin panel.
+/// Application reads these at startup and caches with a short TTL.
+///
+/// Seeded keys (see seed.ts):
+///   default_commission_pct | fraud_score_block_threshold
+///   max_otp_attempts | otp_validity_minutes
+///   deposit_hold_days | kyc_expiry_warning_days
+///   free_cancel_hours | partial_refund_pct | no_refund_hours
+///   gps_speed_threshold_kmh | gps_ping_interval_seconds
+model PlatformConfig {
+  key         String   @id @db.VarChar(200)
+  value       Json
+  description String?  @db.Text
+  updatedAt   DateTime @updatedAt @db.Timestamptz(0)
+  updatedBy   String?  @db.Uuid
+
+  @@map("platform_config")
+}
