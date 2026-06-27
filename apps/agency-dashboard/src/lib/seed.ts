@@ -13,6 +13,7 @@ import type {
   Category,
   KycDoc,
   Request,
+  VehicleFleetStatus,
 } from '@dzrent/types';
 
 export const CATEGORIES: Category[] = [
@@ -77,6 +78,31 @@ export const SEED_BLACKLIST: BlacklistEntry[] = [
   { id: 'bl1', initials: 'KB', name: 'K. Benali', phone: '+213 6•• •• •• 41', reason: 'non_return', addedBy: 'Atlas Cars', date: '02 juin 2026', wilaya: 'Oran' },
   { id: 'bl2', initials: 'MS', name: 'M. Saïdi', phone: '+213 5•• •• •• 09', reason: 'doc_fraud', addedBy: 'Medina Rent', date: '18 mai 2026', wilaya: 'Alger' },
   { id: 'bl3', initials: 'AT', name: 'A. Toumi', phone: '+213 7•• •• •• 77', reason: 'payment', addedBy: 'Phoenix Location', date: '29 avr. 2026', wilaya: 'Constantine' },
+];
+
+/** A vehicle in the current agency's fleet (stand-in for the vehicles endpoint). */
+export interface FleetVehicle {
+  id: string;
+  /** Car catalogue id (see CARS). */
+  car: string;
+  /** Algerian plate, format NNNNN-SSS-WW. */
+  plate: string;
+  status: VehicleFleetStatus;
+  /** Days until the insurance certificate expires. */
+  insDaysLeft: number;
+  /** Days until the technical inspection (visite technique) expires. */
+  techDaysLeft: number;
+}
+
+export const FLEET: FleetVehicle[] = [
+  { id: 'f1', car: 'logan', plate: '00412-114-16', status: 'rented', insDaysLeft: 92, techDaysLeft: 210 },
+  { id: 'f2', car: 'accent', plate: '01188-114-16', status: 'available', insDaysLeft: 18, techDaysLeft: 140 },
+  { id: 'f3', car: 'tucson', plate: '00937-114-16', status: 'rented', insDaysLeft: 240, techDaysLeft: 9 },
+  { id: 'f4', car: 'golf', plate: '02051-114-16', status: 'available', insDaysLeft: 130, techDaysLeft: 64 },
+  { id: 'f5', car: 'classec', plate: '00076-114-16', status: 'maintenance', insDaysLeft: 200, techDaysLeft: 95 },
+  { id: 'f6', car: 'sandero', plate: '01620-114-16', status: 'available', insDaysLeft: 31, techDaysLeft: 180 },
+  { id: 'f7', car: 'logan', plate: '02244-114-16', status: 'inspection', insDaysLeft: 150, techDaysLeft: 25 },
+  { id: 'f8', car: 'accent', plate: '00509-114-16', status: 'out_of_service', insDaysLeft: 4, techDaysLeft: 50 },
 ];
 
 export const SEED_REQUESTS: Request[] = [
