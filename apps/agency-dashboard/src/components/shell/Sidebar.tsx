@@ -6,9 +6,10 @@
  * hardcoded left/right (design handoff §10.1).
  */
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLang } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
 import { Icon, type IconName } from '@/components/Icon';
 import type { StringKey } from '@dzrent/i18n';
 
@@ -31,7 +32,14 @@ const NAV: NavItem[] = [
 export function Sidebar() {
   const { t } = useLang();
   const { pendingCount } = useStore();
+  const { logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/login');
+  };
 
   return (
     <aside className="flex w-64 shrink-0 flex-col bg-primary text-white">
@@ -67,9 +75,12 @@ export function Sidebar() {
         })}
       </nav>
 
-      <button className="m-3 flex items-center gap-3 rounded-r2 px-3 py-2.5 text-[14px] font-medium text-white/70 hover:bg-white/10 hover:text-white">
+      <button
+        onClick={handleLogout}
+        className="m-3 flex items-center gap-3 rounded-r2 px-3 py-2.5 text-[14px] font-medium text-white/70 hover:bg-white/10 hover:text-white"
+      >
         <Icon name="logout" size={19} className="dz-flip" />
-        <span>Déconnexion</span>
+        <span>{t('nav_logout')}</span>
       </button>
     </aside>
   );

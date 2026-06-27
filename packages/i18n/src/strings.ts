@@ -185,6 +185,7 @@ export const STR = {
   nav_trips: { fr: 'Locations', ar: 'الحجوزات' },
   nav_docs: { fr: 'Documents', ar: 'الوثائق' },
   nav_profile: { fr: 'Profil', ar: 'الملف' },
+  nav_logout: { fr: 'Déconnexion', ar: 'تسجيل الخروج' },
 
   // Agency dashboard
   dash_nav_home: { fr: 'Tableau de bord', ar: 'لوحة القيادة' },

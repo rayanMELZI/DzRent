@@ -6,15 +6,20 @@
  */
 import { useLang } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
-import { agencyById, CURRENT_AGENCY_ID } from '@/lib/seed';
+import { useAuth } from '@/lib/auth';
 import { Icon } from '@/components/Icon';
 import type { Lang } from '@dzrent/i18n';
 
 export function Topbar() {
   const { lang, setLang, t } = useLang();
   const { pendingCount } = useStore();
-  const agency = agencyById(CURRENT_AGENCY_ID);
-  const agencyName = agency ? (lang === 'ar' ? agency.ar : agency.fr) : 'DzRent';
+  const { user } = useAuth();
+
+  const displayName = user ? `${user.firstName} ${user.lastName}`.trim() || user.phone : 'DzRent';
+  const initials =
+    user && (user.firstName || user.lastName)
+      ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase()
+      : displayName.slice(0, 2).toUpperCase();
 
   const langs: { id: Lang; label: string }[] = [
     { id: 'fr', label: 'FR' },
@@ -59,10 +64,10 @@ export function Topbar() {
 
         <div className="flex items-center gap-2.5">
           <div className="grid h-9 w-9 place-items-center rounded-full bg-primary-soft text-[13px] font-semibold text-primary">
-            {agencyName.slice(0, 2).toUpperCase()}
+            {initials}
           </div>
           <div className="leading-tight">
-            <div className="dz-sm font-semibold text-ink">{agencyName}</div>
+            <div className="dz-sm font-semibold text-ink">{displayName}</div>
             <div className="dz-xs text-ink-4">{t('surface_agency')}</div>
           </div>
         </div>
