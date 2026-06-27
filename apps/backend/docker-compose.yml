@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   postgres:
     image: postgis/postgis:16-3.4-alpine
@@ -8,7 +7,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-dzrent}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dzrent_dev_secret}
       POSTGRES_DB: ${POSTGRES_DB:-dzrent_dev}
-    ports: ["5432:5432"]
+    # Host port is configurable to avoid clashes with other local Postgres
+    # instances. Override with POSTGRES_HOST_PORT in .env (container stays 5432).
+    ports: ["${POSTGRES_HOST_PORT:-5432}:5432"]
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
@@ -21,7 +22,7 @@ services:
     image: redis:7-alpine
     container_name: dzrent_redis
     restart: unless-stopped
-    ports: ["6379:6379"]
+    ports: ["${REDIS_HOST_PORT:-6379}:6379"]
     volumes: ["redis_data:/data"]
     healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 10s, timeout: 5s, retries: 5 }
   minio:
