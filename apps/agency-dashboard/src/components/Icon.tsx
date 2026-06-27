@@ -18,7 +18,15 @@ export type IconName =
   | 'alert'
   | 'star'
   | 'chevron'
-  | 'logout';
+  | 'logout'
+  | 'car'
+  | 'plus'
+  | 'x'
+  | 'shield'
+  | 'building'
+  | 'gauge'
+  | 'grid'
+  | 'list';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   dashboard: (
@@ -94,6 +102,30 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M10 8l-4 4 4 4M6 12h11" />
     </>
   ),
+  car: (
+    <path d="M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.5L19 11M5 11h14M5 11v5h14v-5M7.5 16v2M16.5 16v2M7 13.5h1.5M15.5 13.5H17" />
+  ),
+  plus: <path d="M12 5v14M5 12h14" />,
+  x: <path d="M6 6l12 12M18 6L6 18" />,
+  shield: <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" />,
+  building: (
+    <path d="M4 21V5a1 1 0 011-1h9a1 1 0 011 1v16M15 21V9h4a1 1 0 011 1v11M8 8h3M8 12h3M8 16h3" />
+  ),
+  gauge: (
+    <>
+      <path d="M12 14a2 2 0 100-4 2 2 0 000 4z" />
+      <path d="M12 12l3-2M5 18a9 9 0 1114 0" />
+    </>
+  ),
+  grid: (
+    <>
+      <rect x="4" y="4" width="7" height="7" rx="1" />
+      <rect x="13" y="4" width="7" height="7" rx="1" />
+      <rect x="4" y="13" width="7" height="7" rx="1" />
+      <rect x="13" y="13" width="7" height="7" rx="1" />
+    </>
+  ),
+  list: <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />,
 };
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
