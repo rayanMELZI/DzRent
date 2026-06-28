@@ -13,12 +13,12 @@ NestJS + Prisma + PostgreSQL backend for an Algerian car-rental platform (Client
 ```bash
 cp .env.example .env          # fill CHANGE_ME secrets: openssl rand -hex 32
 docker compose up -d          # postgres+postgis, redis, minio
-npm install
-npx prisma generate           # REQUIRED in a real env (see sandbox note below)
-npx prisma migrate dev --name sprint1_initial_schema
-npx prisma db execute --file ./prisma/migrations/manual/add_gps_geography.sql --schema ./prisma/schema.prisma
-npx prisma db seed
-npm run start:dev             # Swagger at /api/docs
+pnpm install                  # from the repo root
+pnpm exec prisma generate
+pnpm exec prisma migrate deploy   # applies the committed baseline migration (0_init)
+pnpm exec prisma db execute --file ./prisma/manual/add_gps_geography.sql --schema ./prisma/schema.prisma
+pnpm exec prisma db seed
+pnpm run start:dev            # Swagger at /api/docs
 ```
 
 > **Sandbox note:** this code was built where `binaries.prisma.sh` is firewalled, so

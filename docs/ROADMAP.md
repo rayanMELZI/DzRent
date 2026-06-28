@@ -26,10 +26,15 @@ Goal: a professional monorepo where every surface installs, typechecks and build
 
 ---
 
-## Phase 1 — Agency dashboard MVP 🔜 (current focus)
+## Phase 1 — Agency dashboard MVP 🔄 (in progress)
 
 Goal: the agency can do its real daily job against seed data, then against the API.
 The agency side is where trust lives, so it ships first.
+
+> **Status:** all seven screens are built and styled against the typed store, and
+> phone-OTP authentication is wired to the live backend (login → JWT → protected
+> dashboard, with token refresh + logout). What remains in this phase is replacing
+> the seed-data reads with live API calls per screen (1.6).
 
 ### 1.1 Requests queue — _the heart of agency trust_ (`/requests`)
 - [ ] Tabs: En attente / Approuvées / Refusées with live counts
@@ -61,9 +66,11 @@ The agency side is where trust lives, so it ships first.
 - [ ] Staff: member cards with role, OWNER tag, permission chips
 
 ### 1.6 Wire to the backend
-- [ ] Auth: phone OTP login against `@dzrent/backend`, token storage + refresh
+- [x] Auth: phone OTP login against `@dzrent/backend`, token storage + refresh
+- [x] Gate the dashboard behind a session; wire topbar + logout to the live user
 - [ ] Replace `lib/seed.ts` reads with API calls (typed via `@dzrent/types`)
 - [ ] Server-state layer (TanStack Query) + error/loading states
+- [ ] Seed/onboard agency + vehicle + booking data so fleet/requests show live records
 
 🎯 An agency owner logs in with a phone number, sees real pending requests, reviews a
 customer's KYC, approves a booking, and manages their fleet — end to end.
@@ -74,7 +81,8 @@ customer's KYC, approves a booking, and manages their fleet — end to end.
 
 Goal: move the backend from "compiles" to "runs the golden path in a real environment".
 
-- [ ] Run `docker compose up`, `prisma migrate dev`, the manual PostGIS migration, `db seed`
+- [x] Run `docker compose up`, `prisma migrate deploy`, the manual PostGIS migration, `db seed`
+      (baseline migration `0_init` committed; database seeded and API verified live)
 - [ ] e2e the golden path: request-otp → verify → KYC upload+approve → agency create+verify
       → vehicle create+docs+insurance → search → book → pay (mock) → sign → pickup → return
 - [ ] Build the two known-missing modules: **DamageReport** and **Review** (schema exists,
@@ -124,8 +132,9 @@ Goal: the mobile funnel, installable and tolerant of unstable data.
 
 ## Immediate next 3 tasks
 
-1. Build the **Requests queue** (1.1) — highest product value, exercises the full
-   trust model and the state contract.
-2. Build **Fleet** (1.2) with the compliance dots.
-3. Stand up the backend locally (Phase 2 first bullet) so the dashboard can begin
-   talking to a real API instead of seed data.
+1. **Data binding (1.6):** add a TanStack Query layer and replace `lib/seed.ts`
+   reads with authenticated API calls, starting with the requests queue.
+2. **Agency onboarding data:** wire the flow (or a seed script) to create an agency
+   + vehicles + bookings so fleet/requests render live backend records.
+3. **DamageReport & Review modules (Phase 2):** the schema exists; add their HTTP
+   layer so the dashboard's trust/feedback surfaces have endpoints to call.

@@ -45,19 +45,28 @@ pnpm install                       # install the whole workspace
 # 1) Backend infrastructure + API
 cd apps/backend
 cp .env.example .env               # fill the CHANGE_ME secrets: openssl rand -hex 32
+                                   # if port 5432 is taken, set POSTGRES_HOST_PORT=5433
+                                   # and use that port in DATABASE_URL / DIRECT_URL
 docker compose up -d               # postgres+postgis, redis, minio
 pnpm exec prisma generate
-pnpm exec prisma migrate dev --name init
-pnpm exec prisma db execute --file ./prisma/migrations/manual/add_gps_geography.sql --schema ./prisma/schema.prisma
-pnpm exec prisma db seed
+pnpm exec prisma migrate deploy    # applies the committed baseline migration
+pnpm exec prisma db execute --file ./prisma/manual/add_gps_geography.sql --schema ./prisma/schema.prisma
+pnpm exec prisma db seed           # 58 wilayas, categories, legal clauses, platform config
 cd ../..
 
-# 2) Run everything (turbo runs each app's dev task)
+# 2) Agency dashboard env
+cp apps/agency-dashboard/.env.example apps/agency-dashboard/.env.local
+
+# 3) Run everything (turbo runs each app's dev task)
 pnpm dev
 ```
 
-- API + Swagger docs → http://localhost:3000/api/docs
+- API + Swagger docs → http://localhost:3000/api/docs (global route prefix: `/api/v1`)
 - Agency dashboard → http://localhost:3001
+
+**Signing in (dev):** the dashboard uses phone-OTP login. With the console SMS
+provider (default in dev) the 6-digit code is printed to the **backend console** —
+copy it from there into the login screen. No real SMS account is needed.
 
 To run a single app: `pnpm --filter @dzrent/agency-dashboard dev`.
 
