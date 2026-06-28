@@ -1,0 +1,16 @@
+# Build context hygiene for the frontend image (context = repo root).
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+.git
+.github
+**/.env
+**/.env.*
+!**/.env.example
+*.zip
+_extract
+docs/design-handoff/prototype
+**/*.log
