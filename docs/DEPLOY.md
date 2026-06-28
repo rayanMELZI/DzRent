@@ -76,8 +76,8 @@ ssh nanovmdep '
   cp .env.prod.example .env   # then edit .env: fill every CHANGE_ME (openssl rand -hex 32)
   docker compose -f docker-compose.prod.yml up -d --build
 '
-# one-time reference-data seed:
-ssh nanovmdep 'cd ~/dzrent && docker compose -f docker-compose.prod.yml exec -T backend npx prisma db seed'
+# one-time reference-data seed (runs the compiled seed; ts-node isn't in the slim runtime):
+ssh nanovmdep 'cd ~/dzrent && docker compose -f docker-compose.prod.yml exec -T backend node dist/prisma/seed.js'
 ```
 
 ---
