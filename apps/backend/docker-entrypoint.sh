@@ -8,5 +8,6 @@ set -e
 echo "▶ Applying database migrations…"
 npx prisma migrate deploy
 
+# Nest emits to dist/src/main.js (the project-root prisma/ dir nests output under src).
 echo "▶ Starting DzRent API…"
-exec node dist/main
+exec node dist/src/main
