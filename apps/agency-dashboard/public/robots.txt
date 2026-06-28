@@ -1,0 +1,3 @@
+# DzRent agency dashboard — staff-only SaaS, not for indexing.
+User-agent: *
+Disallow: /
