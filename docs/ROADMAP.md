@@ -31,46 +31,59 @@ Goal: a professional monorepo where every surface installs, typechecks and build
 Goal: the agency can do its real daily job against seed data, then against the API.
 The agency side is where trust lives, so it ships first.
 
-> **Status:** all seven screens are built and styled against the typed store, and
-> phone-OTP authentication is wired to the live backend (login → JWT → protected
-> dashboard, with token refresh + logout). What remains in this phase is replacing
-> the seed-data reads with live API calls per screen (1.6).
+> **Status:** all seven screens are built and styled, and phone-OTP authentication is
+> wired to the live backend (login → JWT → protected dashboard, with token refresh +
+> logout). The **requests queue is now fully live** against the API (TanStack Query +
+> `/bookings/agency/requests` aggregation endpoint + dev seed). What remains in this
+> phase is wiring the other screens the same way (1.6).
 
-### 1.1 Requests queue — _the heart of agency trust_ (`/requests`)
-- [ ] Tabs: En attente / Approuvées / Refusées with live counts
-- [ ] Request list (avatar, name, car, time, `Nouvelle` tag, ⚠ flag)
-- [ ] Detail panel: customer header, two trust checks (blacklist presence, risk-signal
+### 1.1 Requests queue — _the heart of agency trust_ (`/requests`) ✅ (live)
+- [x] Tabs: En attente / Approuvées / Refusées with live counts (server-side `counts`)
+- [x] Request list (avatar, name, car, time, `Nouvelle` tag, ⚠ flag)
+- [x] Detail panel: customer header, two trust checks (blacklist presence, risk-signal
       count), expanded risk flags, inline KYC snapshot (4 docs + per-doc StatusBadge)
-- [ ] Booking period with **total and deposit shown separately** (deposit quarantined)
-- [ ] Approve / Refuse action bar → `setRequestStatus` + toast
+- [x] Booking period with **total and deposit shown separately** (deposit quarantined)
+- [x] Approve / Refuse action bar → `POST /bookings/:id/approve|reject` + toast
 - 🎯 Approving a request updates the queue and is the same call the client surface will
-      observe live (state contract §8).
+      observe live (state contract §8). **Verified e2e** (OTP login → queue → approve →
+      status flips to AWAITING_PAYMENT, counts update).
 
-### 1.2 Fleet (`/fleet`)
-- [ ] Status filter chips with counts (Disponible / Louée / Maintenance / Hors service /
-      Inspection) + grid/list toggle + "Ajouter un véhicule"
-- [ ] Vehicle card: plate (mono), two ComplianceDots (assurance, visite) by days-to-expiry
-- [ ] Add/edit vehicle form (compliance gate for AVAILABLE)
+### 1.2 Fleet (`/fleet`) ✅ (live)
+- [x] Status filter chips with counts + grid/list toggle, live against `GET /vehicles`
+- [x] Vehicle card: plate (mono), two ComplianceDots from **real** insurance/visite expiries
+- [x] Add-vehicle form (`POST /vehicles`; new vehicles start PENDING_INSPECTION per the
+      compliance gate) + per-vehicle status menu (`POST /vehicles/:id/status`)
+- [ ] Edit-vehicle form + photo/document uploads (endpoints exist; UI remains)
 
-### 1.3 Blacklist (`/blacklist`)
-- [ ] Shared inter-agency list with search
-- [ ] "Signaler un client" modal (name, phone, reason + severity)
-- [ ] Rows with severity-colored reason pill (blacklist token, distinct from refused)
+### 1.3 Blacklist (`/blacklist`) ✅ (live, strict-rating model)
+- [x] Federation view grouped per person: **distinct-agency count badge** (1 agence vs
+      N agences), expandable per-report justifications (`GET /blacklist/visible`)
+- [x] "Signaler un client" modal wired to `POST /blacklist` — registered phone +
+      **mandatory written justification** (anti-abuse)
+- [x] Severity-colored reason pills (full backend reason vocabulary)
 
-### 1.4 GPS fleet map (`/map`)
-- [ ] Dark dispatch canvas, dashed geofence, vehicle pins by state (ok / speeding / out)
+### 1.4 GPS fleet map (`/map`) — deprioritised by product owner
+- [ ] Real map (Leaflet/OSM) + live tracker positions from GPS ingest data
 - [ ] Side panel: active/alert counts + per-vehicle live speed & violation labels
 
 ### 1.5 Revenue (`/revenue`) & Staff (`/staff`)
-- [ ] Revenue: period chips, 3 KPI cards, monthly bar trend, revenue-by-category
-- [ ] Staff: member cards with role, OWNER tag, permission chips
+- [ ] Revenue: period chips, 3 KPI cards, monthly bar trend, revenue-by-category (still seed)
+- [x] Staff live: owner card (session), member cards with role + OTP-pending badge,
+      add-member by phone (`POST /agencies/:id/staff`), owner-only removal
 
 ### 1.6 Wire to the backend
 - [x] Auth: phone OTP login against `@dzrent/backend`, token storage + refresh
 - [x] Gate the dashboard behind a session; wire topbar + logout to the live user
-- [ ] Replace `lib/seed.ts` reads with API calls (typed via `@dzrent/types`)
-- [ ] Server-state layer (TanStack Query) + error/loading states
-- [ ] Seed/onboard agency + vehicle + booking data so fleet/requests show live records
+- [x] Server-state layer (TanStack Query) + error/loading states (provider + first hooks)
+- [x] Seed/onboard agency + vehicle + booking data (`pnpm --filter @dzrent/backend db:seed:dev`
+      — verified agency, 4 vehicles, 4 trust-profile clients, bookings in every queue state)
+- [x] Requests queue live: `GET /bookings/agency/requests` (bookings + KYC snapshot +
+      risk flags + blacklist presence in one round-trip) consumed via `lib/requests.ts`
+- [x] Dashboard home + sidebar badge live (shared query cache reacts to decisions);
+      compliance alerts computed from real expiry dates
+- [x] Notification center: `GET /notifications/me` + `readAt` migration + topbar dropdown
+      with unread badge (marks read on open)
+- [ ] Replace remaining `lib/seed.ts` reads: revenue → map (the last two mock screens)
 
 🎯 An agency owner logs in with a phone number, sees real pending requests, reviews a
 customer's KYC, approves a booking, and manages their fleet — end to end.
@@ -132,9 +145,9 @@ Goal: the mobile funnel, installable and tolerant of unstable data.
 
 ## Immediate next 3 tasks
 
-1. **Data binding (1.6):** add a TanStack Query layer and replace `lib/seed.ts`
-   reads with authenticated API calls, starting with the requests queue.
-2. **Agency onboarding data:** wire the flow (or a seed script) to create an agency
-   + vehicles + bookings so fleet/requests render live backend records.
-3. **DamageReport & Review modules (Phase 2):** the schema exists; add their HTTP
+1. **Revenue live (1.5):** aggregate completed bookings/invoices per period into the
+   revenue screen's KPIs and monthly trend (backend aggregation endpoint + hook).
+2. **DamageReport & Review modules (Phase 2):** the schema exists; add their HTTP
    layer so the dashboard's trust/feedback surfaces have endpoints to call.
+3. **GPS map (1.4, when reprioritised):** Leaflet/OSM canvas fed by real tracker
+   positions (`GpsTrackingLog` latest-per-vehicle endpoint).
