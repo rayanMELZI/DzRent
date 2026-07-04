@@ -14,6 +14,13 @@ import { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { BLOCKING_BOOKING_STATUSES } from '../common/constants/booking.constants';
 import { nowUtc, rentalDays } from '../common/utils/date.util';
 import { CreateBookingDto, PickupDto, ReturnDto } from './dto/booking.dto';
+import {
+  AgencyRequestItem,
+  REQUEST_VIEWS,
+  RequestView,
+  buildAgencyRequestItem,
+  viewOfStatus,
+} from './requests.mapper';
 
 @Injectable()
 export class BookingsService {
@@ -173,6 +180,96 @@ export class BookingsService {
       this.prisma.booking.count({ where }),
     ]);
     return { items, total, page };
+  }
+
+  /**
+   * Agency requests queue — one round-trip for the dashboard's trust review.
+   * Joins each booking with the client's KYC snapshot (latest version per doc),
+   * unresolved risk flags, blacklist presence (shared or this agency) and
+   * completed-rental count, plus live counts for the three queue tabs.
+   */
+  async listAgencyRequests(caller: AuthenticatedUser, view: RequestView, page = 1, limit = 50) {
+    if (!caller.agencyId) throw new ForbiddenException('Agency context required.');
+    const where = { agencyId: caller.agencyId, status: { in: [...REQUEST_VIEWS[view]] } };
+
+    const [rows, total, byStatus] = await Promise.all([
+      this.prisma.booking.findMany({
+        where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' },
+        select: {
+          id: true, bookingRef: true, status: true, createdAt: true,
+          requestedFrom: true, requestedUntil: true, confirmedFrom: true, confirmedUntil: true,
+          totalDays: true, totalAmountDA: true, depositAmountDA: true,
+          client: { select: { id: true, firstName: true, lastName: true, phone: true, createdAt: true, riskFlags: true } },
+          vehicle: { select: { make: true, model: true, licensePlate: true } },
+        },
+      }),
+      this.prisma.booking.count({ where }),
+      this.prisma.booking.groupBy({ by: ['status'], where: { agencyId: caller.agencyId }, _count: { _all: true } }),
+    ]);
+
+    // Trust data for the page's distinct clients — three grouped queries, no N+1.
+    const clientIds = [...new Set(rows.map((r: { client: { id: string } }) => r.client.id))];
+    const now = nowUtc();
+    const [kycDocs, blacklistRows, completedRows] = clientIds.length
+      ? await Promise.all([
+          this.prisma.kycDocument.findMany({
+            where: { userId: { in: clientIds } },
+            orderBy: { version: 'desc' }, // first hit per (user, type) = latest version
+            select: { userId: true, documentType: true, status: true, expiresAt: true },
+          }),
+          this.prisma.blacklistEntry.findMany({
+            where: {
+              userId: { in: clientIds }, isActive: true,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+              AND: [{ OR: [{ agencyId: caller.agencyId }, { isShared: true }] }],
+            },
+            select: {
+              userId: true, reason: true, description: true, createdAt: true,
+              agency: { select: { name: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+          }),
+          this.prisma.booking.groupBy({
+            by: ['clientId'],
+            where: { clientId: { in: clientIds }, status: BookingStatus.COMPLETED },
+            _count: { _all: true },
+          }),
+        ])
+      : [[], [], []];
+
+    const kycByClient = new Map<string, typeof kycDocs>();
+    for (const d of kycDocs) {
+      const list = kycByClient.get(d.userId) ?? [];
+      list.push(d);
+      kycByClient.set(d.userId, list);
+    }
+    const blacklistByClient = new Map<string, { reason: string; description: string; agencyName: string; createdAt: string }[]>();
+    for (const b of blacklistRows as { userId: string; reason: string; description: string; createdAt: Date; agency: { name: string } }[]) {
+      const list = blacklistByClient.get(b.userId) ?? [];
+      list.push({ reason: b.reason, description: b.description, agencyName: b.agency.name, createdAt: b.createdAt.toISOString() });
+      blacklistByClient.set(b.userId, list);
+    }
+    const rentalsByClient = new Map<string, number>(
+      completedRows.map((c: { clientId: string; _count: { _all: number } }) => [c.clientId, c._count._all]),
+    );
+
+    const items: AgencyRequestItem[] = rows.map((row: (typeof rows)[number]) =>
+      buildAgencyRequestItem(row, {
+        kycDocs: kycByClient.get(row.client.id) ?? [],
+        blacklistEntries: blacklistByClient.get(row.client.id) ?? [],
+        rentals: rentalsByClient.get(row.client.id) ?? 0,
+        now,
+      }),
+    );
+
+    // Tab counters across all three views (independent of the current filter).
+    const counts = { pending: 0, approved: 0, refused: 0 };
+    for (const g of byStatus as { status: BookingStatus; _count: { _all: number } }[]) {
+      const v = viewOfStatus(g.status);
+      if (v) counts[v] += g._count._all;
+    }
+
+    return { items, counts, total, page };
   }
 
   async getById(id: string, caller: AuthenticatedUser) {

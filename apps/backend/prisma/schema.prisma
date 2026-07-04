@@ -1177,12 +1177,15 @@ model NotificationLog {
   deliveredAt DateTime?           @db.Timestamptz(0)
   failureReason String?           @db.Text
   externalRef String?             @db.VarChar(200) // Provider message SID (Twilio, FCM, etc.)
+  /// When the recipient opened it in the in-app notification center (null = unread).
+  readAt      DateTime?           @db.Timestamptz(0)
 
   createdAt DateTime @default(now()) @db.Timestamptz(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, channel])
+  @@index([userId, readAt])
   @@index([isDelivered, createdAt])
   @@map("notification_logs")
 }

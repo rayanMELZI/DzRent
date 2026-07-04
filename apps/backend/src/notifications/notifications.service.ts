@@ -21,6 +21,29 @@ export class NotificationsService {
     @Inject(SMS_SERVICE) private readonly sms: ISmsService,
   ) {}
 
+  /** In-app notification center: the caller's own log, newest first. */
+  async listMine(userId: string, page = 1, limit = 20) {
+    const where = { userId };
+    const [items, total, unread] = await Promise.all([
+      this.prisma.notificationLog.findMany({
+        where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' },
+        select: { id: true, channel: true, templateId: true, payload: true, isDelivered: true, readAt: true, createdAt: true },
+      }),
+      this.prisma.notificationLog.count({ where }),
+      this.prisma.notificationLog.count({ where: { userId, readAt: null } }),
+    ]);
+    return { items, total, unread, page };
+  }
+
+  /** Mark every unread notification as read (opening the center reads all). */
+  async markAllRead(userId: string) {
+    const { count } = await this.prisma.notificationLog.updateMany({
+      where: { userId, readAt: null },
+      data: { readAt: new Date() },
+    });
+    return { marked: count };
+  }
+
   async sendSms(params: {
     userId: string;
     phone: string;

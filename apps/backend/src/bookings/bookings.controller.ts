@@ -4,6 +4,7 @@ import { BookingStatus, UserRole } from '@prisma/client';
 
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto, PickupDto, RejectBookingDto, ReturnDto } from './dto/booking.dto';
+import { toRequestView } from './requests.mapper';
 import { JwtAuthGuard } from '../auth/guards/auth.guards';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -32,6 +33,21 @@ export class BookingsController {
   @Get('agency') @Roles(...AGENCY)
   async agency(@CurrentUser() caller: AuthenticatedUser, @Query('status') status?: BookingStatus, @Query('page') page = '1', @Query('limit') limit = '20') {
     return { success: true, ...(await this.bookings.listForAgency(caller, status, Number(page), Number(limit))) };
+  }
+
+  @Get('agency/requests') @Roles(...AGENCY)
+  @ApiOperation({ summary: 'Agency: requests queue enriched with KYC snapshot, risk flags and blacklist presence' })
+  async agencyRequests(
+    @CurrentUser() caller: AuthenticatedUser,
+    @Query('view') view?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '50',
+  ) {
+    const take = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    return {
+      success: true,
+      data: await this.bookings.listAgencyRequests(caller, toRequestView(view), Number(page) || 1, take),
+    };
   }
 
   @Get(':id')

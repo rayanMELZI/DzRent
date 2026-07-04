@@ -73,7 +73,15 @@ export class VehiclesService {
     const [items, total] = await Promise.all([
       this.prisma.vehicle.findMany({
         where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' },
-        include: { category: { select: { slug: true, nameFr: true } } },
+        include: {
+          category: { select: { slug: true, nameFr: true, nameAr: true } },
+          // Latest expiries so the dashboard renders real days-to-expiry dots.
+          insurancePolicies: { where: { isActive: true }, orderBy: { endDate: 'desc' }, take: 1, select: { endDate: true } },
+          documents: {
+            where: { documentType: VehicleDocumentType.VISITE_TECHNIQUE },
+            orderBy: { version: 'desc' }, take: 1, select: { expiresAt: true },
+          },
+        },
       }),
       this.prisma.vehicle.count({ where }),
     ]);

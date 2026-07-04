@@ -54,6 +54,83 @@ export class BlacklistService {
     return { isBlacklisted: visible.length > 0, entries: visible };
   }
 
+  /**
+   * The inter-agency view, grouped per person — a strict "rating":
+   * every visible entry (own agency + shared federation) carries its mandatory
+   * justification, and the count of DISTINCT reporting agencies is surfaced so
+   * one grudge reads differently from a cross-agency pattern.
+   */
+  async listVisible(caller: AuthenticatedUser, q?: string, page = 1, limit = 50) {
+    if (!caller.agencyId) throw new ForbiddenException('Agency context required.');
+    const now = new Date();
+    const agency = await this.prisma.agency.findUnique({
+      where: { id: caller.agencyId }, select: { acceptsBlacklist: true },
+    });
+    const visibility = agency?.acceptsBlacklist
+      ? { OR: [{ agencyId: caller.agencyId }, { isShared: true }] }
+      : { agencyId: caller.agencyId };
+
+    const entries = await this.prisma.blacklistEntry.findMany({
+      where: {
+        isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        AND: [
+          visibility,
+          ...(q
+            ? [{
+                user: {
+                  OR: [
+                    { firstName: { contains: q, mode: 'insensitive' as const } },
+                    { lastName: { contains: q, mode: 'insensitive' as const } },
+                    { phone: { contains: q } },
+                  ],
+                },
+              }]
+            : []),
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 500, // group in memory; the federation list stays small pre-scale
+      select: {
+        id: true, reason: true, description: true, isShared: true, createdAt: true, agencyId: true,
+        agency: { select: { name: true } },
+        user: { select: { id: true, firstName: true, lastName: true, phone: true } },
+      },
+    });
+
+    // Group per person, newest activity first.
+    const byUser = new Map<string, typeof entries>();
+    for (const e of entries) {
+      const list = byUser.get(e.user.id) ?? [];
+      list.push(e);
+      byUser.set(e.user.id, list);
+    }
+    const people = [...byUser.values()].map((list) => {
+      const u = list[0].user;
+      return {
+        user: {
+          id: u.id,
+          name: `${u.firstName} ${u.lastName}`.trim(),
+          initials: `${u.firstName.charAt(0)}${u.lastName.charAt(0)}`.toUpperCase(),
+          phone: u.phone,
+        },
+        agencyCount: new Set(list.map((e) => e.agencyId)).size,
+        entries: list.map((e) => ({
+          id: e.id,
+          reason: e.reason,
+          description: e.description,
+          agencyName: e.agency.name,
+          isMine: e.agencyId === caller.agencyId,
+          isShared: e.isShared,
+          createdAt: e.createdAt.toISOString(),
+        })),
+      };
+    });
+
+    const start = (page - 1) * limit;
+    return { items: people.slice(start, start + limit), total: people.length, page };
+  }
+
   async listMine(caller: AuthenticatedUser, page = 1, limit = 20) {
     if (!caller.agencyId) throw new ForbiddenException('Agency context required.');
     const where = { agencyId: caller.agencyId };

@@ -26,6 +26,19 @@ export class BlacklistController {
     return { success: true, ...(await this.blacklist.listMine(caller, Number(page), Number(limit))) };
   }
 
+  @Get('visible') @Roles(UserRole.AGENCY_OWNER, UserRole.AGENCY_STAFF)
+  async visible(
+    @CurrentUser() caller: AuthenticatedUser,
+    @Query('q') q?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '50',
+  ) {
+    return {
+      success: true,
+      ...(await this.blacklist.listVisible(caller, q?.trim() || undefined, Number(page) || 1, Math.min(Number(limit) || 50, 100))),
+    };
+  }
+
   @Get('all') @Roles(UserRole.ADMIN)
   async all(@Query('page') page = '1', @Query('limit') limit = '20') {
     return { success: true, ...(await this.blacklist.adminList(Number(page), Number(limit))) };
