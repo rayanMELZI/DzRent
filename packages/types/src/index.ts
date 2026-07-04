@@ -131,6 +131,17 @@ export interface BlacklistEntry {
 
 export type RequestStatus = 'pending' | 'approved' | 'refused';
 
+/** One agency's blacklist report with its mandatory justification. */
+export interface BlacklistEntryDetail {
+  /** Backend BlacklistReason code, e.g. NON_RETURN. */
+  reason: string;
+  /** Why — required from the reporting agency (anti-abuse rule). */
+  description: string;
+  agencyName: string;
+  /** ISO timestamp. */
+  createdAt: string;
+}
+
 export interface RequestCustomer {
   name: string;
   phone: string;
@@ -139,6 +150,10 @@ export interface RequestCustomer {
   rentals: number;
   kyc: KycSnapshot;
   blacklisted: boolean;
+  /** Distinct agencies that flagged this person (strict rating signal). */
+  blacklistAgencyCount?: number;
+  /** The visible reports, each with its justification. */
+  blacklistEntries?: BlacklistEntryDetail[];
   /** Risk signals raised by the fraud engine, e.g. "Selfie ne correspond pas à la CIN". */
   riskFlags: { fr: string; ar: string }[];
 }

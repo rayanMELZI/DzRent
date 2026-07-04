@@ -238,6 +238,9 @@ export const STR = {
   req_approved_toast: { fr: 'Réservation approuvée', ar: 'تمت الموافقة على الحجز' },
   req_refused_toast: { fr: 'Demande refusée', ar: 'رُفض الطلب' },
   req_period: { fr: 'Période', ar: 'المدة' },
+  req_load_error: { fr: 'Impossible de charger les demandes.', ar: 'تعذّر تحميل الطلبات.' },
+  req_action_error: { fr: "L'action a échoué. Réessayez.", ar: 'فشل الإجراء. أعد المحاولة.' },
+  req_refuse_reason: { fr: "Refusée par l'agence", ar: 'رفضتها الوكالة' },
 
   bl_title: { fr: 'Liste noire inter-agences', ar: 'القائمة السوداء بين الوكالات' },
   bl_sub: {
@@ -263,6 +266,23 @@ export const STR = {
   common_back: { fr: 'Retour', ar: 'رجوع' },
   common_next: { fr: 'Continuer', ar: 'متابعة' },
   common_close: { fr: 'Fermer', ar: 'إغلاق' },
+  common_retry: { fr: 'Réessayer', ar: 'إعادة المحاولة' },
+  common_loading: { fr: 'Chargement…', ar: 'جارٍ التحميل…' },
+  common_cancel: { fr: 'Annuler', ar: 'إلغاء' },
+  common_save_error: { fr: "L'enregistrement a échoué.", ar: 'فشل الحفظ.' },
+
+  notif_title: { fr: 'Notifications', ar: 'الإشعارات' },
+  notif_empty: { fr: 'Aucune notification.', ar: 'لا إشعارات.' },
+
+  bl_justification: { fr: 'Justification (obligatoire)', ar: 'التبرير (إلزامي)' },
+  bl_justification_ph: {
+    fr: "Décrivez l'incident : dates, faits, préjudice…",
+    ar: 'صف الحادثة: التواريخ، الوقائع، الضرر…',
+  },
+  bl_agencies_one: { fr: '1 agence', ar: 'وكالة واحدة' },
+  bl_agencies_n: { fr: 'agences', ar: 'وكالات' },
+  bl_added: { fr: 'Ajouté à la liste noire', ar: 'أُضيف إلى القائمة السوداء' },
+  bl_phone_required: { fr: 'Le téléphone du client est requis.', ar: 'رقم هاتف الزبون مطلوب.' },
   common_dzd: { fr: 'DZD', ar: 'دج' },
   common_day: { fr: 'jour', ar: 'يوم' },
   common_per_day: { fr: '/jour', ar: '/يوم' },
