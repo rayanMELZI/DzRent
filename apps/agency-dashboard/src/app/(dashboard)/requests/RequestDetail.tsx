@@ -8,7 +8,11 @@
  */
 import { useLang } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
-import { carById, KYC_DOCS } from '@/lib/seed';
+import { KYC_DOCS } from '@/lib/seed';
+import { useRequestDecision } from '@/lib/requests';
+import { REASON_LABELS } from '@/lib/blacklist';
+import { dayMonth } from '@/lib/dates';
+import { ApiError } from '@/lib/api';
 import { formatDZD } from '@dzrent/i18n';
 import type { KycStatus, Request } from '@dzrent/types';
 import type { StatusToken } from '@dzrent/tokens';
@@ -27,16 +31,25 @@ const KYC_BADGE: Record<KycStatus, { token: StatusToken; labelKey: StringKey }> 
 
 export function RequestDetail({ req }: { req: Request }) {
   const { t, lang } = useLang();
-  const { setRequestStatus, showToast } = useStore();
-  const car = carById(req.car);
-  const carName = car ? car[lang] : req.car;
+  const { showToast } = useStore();
+  const decision = useRequestDecision();
+  const carName = req.car;
   const c = req.customer;
 
   const act = (status: 'approved' | 'refused') => {
-    setRequestStatus(req.id, status);
-    showToast(
-      status === 'approved' ? t('req_approved_toast') : t('req_refused_toast'),
-      status === 'approved' ? 'ok' : 'err',
+    decision.mutate(
+      status === 'approved'
+        ? { id: req.id, action: 'approve' }
+        : { id: req.id, action: 'reject', reason: t('req_refuse_reason') },
+      {
+        onSuccess: () =>
+          showToast(
+            status === 'approved' ? t('req_approved_toast') : t('req_refused_toast'),
+            status === 'approved' ? 'ok' : 'err',
+          ),
+        onError: (err) =>
+          showToast(err instanceof ApiError ? err.message : t('req_action_error'), 'err'),
+      },
     );
   };
 
@@ -77,7 +90,15 @@ export function RequestDetail({ req }: { req: Request }) {
             icon="shield"
             okToken="approved"
             badToken="blacklist"
-            label={c.blacklisted ? t('st_blacklist') : t('req_not_bl')}
+            label={
+              c.blacklisted
+                ? `${t('st_blacklist')} · ${
+                    (c.blacklistAgencyCount ?? 1) === 1
+                      ? t('bl_agencies_one')
+                      : `${c.blacklistAgencyCount} ${t('bl_agencies_n')}`
+                  }`
+                : t('req_not_bl')
+            }
           />
           <TrustCheck
             ok={c.riskFlags.length === 0}
@@ -91,6 +112,32 @@ export function RequestDetail({ req }: { req: Request }) {
             }
           />
         </div>
+
+        {/* blacklist reports — each with its mandatory justification */}
+        {c.blacklisted && (c.blacklistEntries?.length ?? 0) > 0 && (
+          <div className="mt-3 rounded-r2 bg-status-blacklist-bg px-3.5 py-3">
+            <div className="dz-label mb-2 text-status-blacklist-ink">{t('bl_reason')}</div>
+            <div className="flex flex-col gap-2.5">
+              {c.blacklistEntries!.map((e, i) => {
+                const reason = REASON_LABELS[e.reason];
+                return (
+                  <div key={i} className="text-[13px] text-status-blacklist-ink">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <Icon name="shield" size={14} stroke="#7A1F17" />
+                      {reason ? reason[lang] : e.reason}
+                      <span className="dz-xs font-normal opacity-75">
+                        — {e.agencyName} · {dayMonth(e.createdAt, lang)}
+                      </span>
+                    </div>
+                    <p className="m-0 mt-1 ps-[22px] text-[12.5px] leading-snug opacity-90">
+                      {e.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* risk flags detail */}
         {c.riskFlags.length > 0 && (
@@ -128,7 +175,7 @@ export function RequestDetail({ req }: { req: Request }) {
         {/* booking period */}
         <h3 className="dz-h3 mb-3 mt-6 text-ink">{t('req_period')}</h3>
         <div className="flex gap-3.5 rounded-r2 bg-sand p-3.5">
-          <Placeholder label={`photo · ${car?.fr ?? req.car}`} height={64} radius={10} style={{ width: 96, flexShrink: 0 }} />
+          <Placeholder label={`photo · ${carName}`} height={64} radius={10} style={{ width: 96, flexShrink: 0 }} />
           <div className="flex-1">
             <div className="dz-h3 text-[15px] text-ink">{carName}</div>
             <div className="dz-sm dz-mono mt-1.5 text-ink-2" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
@@ -155,10 +202,22 @@ export function RequestDetail({ req }: { req: Request }) {
       {/* action bar */}
       {req.status === 'pending' ? (
         <div className="flex shrink-0 gap-3 border-t border-line-2 p-4">
-          <Button variant="danger" icon="x" className="flex-1" onClick={() => act('refused')}>
+          <Button
+            variant="danger"
+            icon="x"
+            className="flex-1"
+            disabled={decision.isPending}
+            onClick={() => act('refused')}
+          >
             {t('req_refuse')}
           </Button>
-          <Button variant="primary" icon="check" className="flex-[2]" onClick={() => act('approved')}>
+          <Button
+            variant="primary"
+            icon="check"
+            className="flex-[2]"
+            disabled={decision.isPending}
+            onClick={() => act('approved')}
+          >
             {t('req_approve')}
           </Button>
         </div>

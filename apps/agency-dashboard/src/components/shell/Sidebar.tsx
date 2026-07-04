@@ -8,7 +8,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLang } from '@/lib/i18n';
-import { useStore } from '@/lib/store';
+import { useAgencyRequests } from '@/lib/requests';
 import { useAuth } from '@/lib/auth';
 import { Icon, type IconName } from '@/components/Icon';
 import type { StringKey } from '@dzrent/i18n';
@@ -31,7 +31,9 @@ const NAV: NavItem[] = [
 
 export function Sidebar() {
   const { t } = useLang();
-  const { pendingCount } = useStore();
+  // Shares the queue query cache: the badge reacts live to approve/refuse.
+  const { data } = useAgencyRequests('pending');
+  const pendingCount = data?.counts.pending ?? 0;
   const { logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
