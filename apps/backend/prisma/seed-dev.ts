@@ -373,10 +373,48 @@ async function main() {
     });
   }
 
+  // Revenue history: completed rentals spread over the past year so the
+  // revenue screen's 12-month trend and category breakdown have real shape.
+  const HISTORY_CLIENTS = [yacine.id, lina.id, karim.id];
+  const HISTORY_MODELS = ['Tucson', 'Golf 8', 'Accent', 'Classe C'];
+  const HISTORY_DAILY: Record<string, number> = { Tucson: 11_000, 'Golf 8': 8_500, Accent: 6_500, 'Classe C': 18_000 };
+  for (let m = 1; m <= 11; m++) {
+    // 1–2 rentals per month, deterministic mix.
+    const perMonth = m % 3 === 0 ? 2 : 1;
+    for (let k = 0; k < perMonth; k++) {
+      const ref = `DZR-2026-91${String(m).padStart(2, '0')}${k}`;
+      const model = HISTORY_MODELS[(m + k) % HISTORY_MODELS.length]!;
+      const daily = HISTORY_DAILY[model]!;
+      const days = 2 + ((m + k) % 4);
+      const p = price(daily, days);
+      const from = daysAgo(m * 30 + k * 9);
+      const until = new Date(from.getTime() + days * 86_400_000);
+      await prisma.booking.upsert({
+        where: { bookingRef: ref },
+        update: {},
+        create: {
+          bookingRef: ref,
+          clientId: HISTORY_CLIENTS[(m + k) % HISTORY_CLIENTS.length]!,
+          agencyId: agency.id,
+          vehicleId: vehicles.get(model)!,
+          status: BookingStatus.COMPLETED,
+          requestedFrom: from, requestedUntil: until,
+          confirmedFrom: from, confirmedUntil: until,
+          actualPickupAt: from, actualReturnAt: until,
+          dailyRateDA: daily, totalDays: days,
+          subtotalDA: p.subtotal, taxAmountDA: p.tax, insuranceAmountDA: p.insurance,
+          depositAmountDA: 40_000, totalAmountDA: p.total,
+          pickupWilayaId: 16,
+          createdAt: daysAgo(m * 30 + k * 9 + 2),
+        },
+      });
+    }
+  }
+
   console.log('✅ Agency  :', agency.name, `(slug ${agency.slug})`);
   console.log('✅ Fleet   :', FLEET.length, 'vehicles');
   console.log('✅ Clients : Yacine (clean) · Riad (risk flag) · Lina (veteran) · Karim (blacklisted)');
-  console.log('✅ Bookings: 3 pending · 1 approved · 1 refused · 2 completed');
+  console.log('✅ Bookings: 3 pending · 1 approved · 1 refused · ~17 completed (12-month revenue history)');
   console.log(`\n🔑 Dashboard login: ${OWNER_PHONE} — the OTP prints in the backend console.\n`);
 }
 

@@ -272,6 +272,82 @@ export class BookingsService {
     return { items, counts, total, page };
   }
 
+  /**
+   * Revenue analytics for the agency dashboard: rolling-window KPIs
+   * (week/month/year with previous-window trend), a 12-month trend and a
+   * revenue-by-category breakdown. Revenue counts money-engaged bookings
+   * (PAID / ACTIVE / COMPLETED), attributed to the rental start date.
+   */
+  async agencyRevenue(caller: AuthenticatedUser) {
+    if (!caller.agencyId) throw new ForbiddenException('Agency context required.');
+    const now = nowUtc();
+    const yearAgo = new Date(now);
+    yearAgo.setUTCFullYear(yearAgo.getUTCFullYear() - 2); // 2y back → previous-year trend windows
+
+    const rows = await this.prisma.booking.findMany({
+      where: {
+        agencyId: caller.agencyId,
+        status: { in: [BookingStatus.PAID, BookingStatus.ACTIVE, BookingStatus.COMPLETED] },
+        OR: [
+          { confirmedFrom: { gte: yearAgo } },
+          { confirmedFrom: null, requestedFrom: { gte: yearAgo } },
+        ],
+      },
+      select: {
+        totalAmountDA: true, confirmedFrom: true, requestedFrom: true,
+        vehicle: { select: { category: { select: { slug: true, nameFr: true, nameAr: true } } } },
+      },
+    });
+
+    const dated = rows.map((r: (typeof rows)[number]) => ({
+      at: (r.confirmedFrom ?? r.requestedFrom).getTime(),
+      amount: Number(r.totalAmountDA),
+      category: r.vehicle.category,
+    }));
+
+    // Rolling windows with previous-window trend (null when no baseline).
+    const window = (days: number) => {
+      const start = now.getTime() - days * 86_400_000;
+      const prevStart = start - days * 86_400_000;
+      const inWin = dated.filter((d) => d.at >= start && d.at <= now.getTime());
+      const prev = dated.filter((d) => d.at >= prevStart && d.at < start);
+      const revenue = inWin.reduce((s, d) => s + d.amount, 0);
+      const prevRevenue = prev.reduce((s, d) => s + d.amount, 0);
+      return {
+        revenue,
+        rentals: inWin.length,
+        avg: inWin.length ? Math.round(revenue / inWin.length) : 0,
+        trendPct: prevRevenue > 0 ? Math.round(((revenue - prevRevenue) / prevRevenue) * 100) : null,
+      };
+    };
+
+    // Last 12 calendar months, oldest first.
+    const months: { month: string; revenue: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+      months.push({
+        month: `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`,
+        revenue: dated
+          .filter((x) => x.at >= d.getTime() && x.at < next.getTime())
+          .reduce((s, x) => s + x.amount, 0),
+      });
+    }
+
+    const byCategory = new Map<string, { slug: string; nameFr: string; nameAr: string; revenue: number }>();
+    for (const d of dated) {
+      const cur = byCategory.get(d.category.slug) ?? { ...d.category, revenue: 0 };
+      cur.revenue += d.amount;
+      byCategory.set(d.category.slug, cur);
+    }
+
+    return {
+      periods: { w: window(7), m: window(30), y: window(365) },
+      months,
+      byCategory: [...byCategory.values()].sort((a, b) => b.revenue - a.revenue),
+    };
+  }
+
   async getById(id: string, caller: AuthenticatedUser) {
     const b = await this.prisma.booking.findUnique({
       where: { id },

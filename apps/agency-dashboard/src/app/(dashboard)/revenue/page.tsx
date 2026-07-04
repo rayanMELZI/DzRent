@@ -1,32 +1,30 @@
 'use client';
 
 /**
- * Revenue (design handoff §9.B.6): period chips, 3 KPI cards, a monthly bar trend
- * (last month in clay) and a revenue-by-category bar list.
+ * Revenue (design handoff §9.B.6) — live analytics: period chips drive the 3
+ * KPI cards (rolling windows with previous-window trend), a real 12-month bar
+ * trend (current month in clay) and a revenue-by-category bar list.
  */
 import { useState } from 'react';
 import { useLang } from '@/lib/i18n';
-import { CATEGORIES } from '@/lib/seed';
+import { useAgencyRevenue } from '@/lib/revenue';
+import { formatDZD } from '@dzrent/i18n';
 import { Chip } from '@/components/Chip';
+import { Icon } from '@/components/Icon';
+import { Button } from '@/components/Button';
 
 type Period = 'w' | 'm' | 'y';
 
-const BY_CATEGORY: { id: string; valueK: number }[] = [
-  { id: 'suv', valueK: 642 },
-  { id: 'berline', valueK: 488 },
-  { id: 'prestige', valueK: 410 },
-  { id: 'citadine', valueK: 196 },
-  { id: 'minivan', valueK: 106 },
-];
-
-const MONTHS_K = [320, 410, 380, 520, 470, 610, 580, 690, 640, 720, 921, 1842];
+/** "2026-07" → localized short month label. */
+function monthLabel(iso: string, lang: 'fr' | 'ar'): string {
+  const [y, m] = iso.split('-').map(Number);
+  return new Intl.DateTimeFormat(lang, { month: 'narrow' }).format(new Date(Date.UTC(y!, m! - 1, 1)));
+}
 
 export default function RevenueScreen() {
   const { t, lang } = useLang();
   const [period, setPeriod] = useState<Period>('m');
-
-  const maxCat = Math.max(...BY_CATEGORY.map((c) => c.valueK));
-  const maxMonth = Math.max(...MONTHS_K);
+  const query = useAgencyRevenue();
 
   const periods: { id: Period; fr: string; ar: string }[] = [
     { id: 'w', fr: 'Semaine', ar: 'أسبوع' },
@@ -34,10 +32,39 @@ export default function RevenueScreen() {
     { id: 'y', fr: 'Année', ar: 'سنة' },
   ];
 
-  const kpis: { label: string; value: string; unit?: string; trend: string }[] = [
-    { label: t('kpi_revenue'), value: '1 842 000', unit: t('common_dzd'), trend: '+12%' },
-    { label: lang === 'ar' ? 'عدد الحجوزات' : 'Locations', value: '64', trend: '+8%' },
-    { label: lang === 'ar' ? 'متوسط القيمة' : 'Panier moyen', value: '28 800', unit: t('common_dzd'), trend: '+4%' },
+  if (query.isPending) {
+    return (
+      <div className="mx-auto flex max-w-5xl flex-col gap-4">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="dz-pulse h-28 rounded-r3 bg-paper shadow-soft" />
+          ))}
+        </div>
+        <div className="dz-pulse h-56 rounded-r3 bg-paper shadow-soft" />
+      </div>
+    );
+  }
+
+  if (query.isError || !query.data) {
+    return (
+      <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 rounded-r3 bg-paper p-10 text-center shadow-soft">
+        <Icon name="alert" size={22} stroke="#9C352B" />
+        <Button variant="soft" size="sm" onClick={() => query.refetch()}>
+          {t('common_retry')}
+        </Button>
+      </div>
+    );
+  }
+
+  const data = query.data;
+  const win = data.periods[period];
+  const maxMonth = Math.max(1, ...data.months.map((m) => m.revenue));
+  const maxCat = Math.max(1, ...data.byCategory.map((c) => c.revenue));
+
+  const kpis: { label: string; value: string; unit?: string; trendPct: number | null }[] = [
+    { label: t('kpi_revenue'), value: formatDZD(win.revenue), unit: t('common_dzd'), trendPct: win.trendPct },
+    { label: lang === 'ar' ? 'عدد الحجوزات' : 'Locations', value: String(win.rentals), trendPct: null },
+    { label: lang === 'ar' ? 'متوسط القيمة' : 'Panier moyen', value: formatDZD(win.avg), unit: t('common_dzd'), trendPct: null },
   ];
 
   return (
@@ -58,9 +85,18 @@ export default function RevenueScreen() {
               <span className="dz-mono text-[25px] font-semibold text-ink">{k.value}</span>
               {k.unit && <span className="dz-xs text-ink-4">{k.unit}</span>}
             </div>
-            <span className="mt-2 inline-block rounded-full bg-status-approved-bg px-2 py-0.5 text-[12px] font-semibold text-status-approved-ink">
-              {k.trend}
-            </span>
+            {k.trendPct !== null && (
+              <span
+                className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[12px] font-semibold ${
+                  k.trendPct >= 0
+                    ? 'bg-status-approved-bg text-status-approved-ink'
+                    : 'bg-status-refused-bg text-status-refused-ink'
+                }`}
+              >
+                {k.trendPct >= 0 ? '+' : ''}
+                {k.trendPct}%
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -73,18 +109,20 @@ export default function RevenueScreen() {
             <span className="dz-xs font-normal text-ink-4">(k {t('common_dzd')})</span>
           </h3>
           <div className="flex h-40 items-end gap-1.5">
-            {MONTHS_K.map((m, i) => {
-              const last = i === MONTHS_K.length - 1;
+            {data.months.map((m, i) => {
+              const last = i === data.months.length - 1;
               return (
-                <div key={i} className="flex h-full flex-1 flex-col items-center justify-end">
+                <div key={m.month} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
                   <div
                     className="w-full rounded-t-[5px]"
+                    title={`${m.month} · ${formatDZD(m.revenue)} DZD`}
                     style={{
-                      height: `${(m / maxMonth) * 100}%`,
+                      height: `${Math.max(2, (m.revenue / maxMonth) * 100)}%`,
                       background: last ? '#C0613A' : '#0F5249',
-                      opacity: last ? 1 : 0.8 - (MONTHS_K.length - 1 - i) * 0.03,
+                      opacity: last ? 1 : 0.8 - (data.months.length - 1 - i) * 0.03,
                     }}
                   />
+                  <span className="dz-xs text-ink-4">{monthLabel(m.month, lang)}</span>
                 </div>
               );
             })}
@@ -95,23 +133,23 @@ export default function RevenueScreen() {
         <div className="rounded-r3 bg-paper p-5 shadow-soft">
           <h3 className="dz-h3 mb-4 text-ink">{lang === 'ar' ? 'حسب الفئة' : 'Par catégorie'}</h3>
           <div className="flex flex-col gap-3">
-            {BY_CATEGORY.map((c) => {
-              const cat = CATEGORIES.find((x) => x.id === c.id);
-              return (
-                <div key={c.id}>
-                  <div className="mb-1.5 flex justify-between text-[12.5px]">
-                    <span className="font-medium text-ink">{cat ? cat[lang] : c.id}</span>
-                    <span className="dz-mono text-ink-3">{c.valueK}k</span>
-                  </div>
-                  <div className="h-[7px] rounded-full bg-sand">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${(c.valueK / maxCat) * 100}%` }}
-                    />
-                  </div>
+            {data.byCategory.map((c) => (
+              <div key={c.slug}>
+                <div className="mb-1.5 flex justify-between text-[12.5px]">
+                  <span className="font-medium text-ink">{lang === 'ar' ? c.nameAr : c.nameFr}</span>
+                  <span className="dz-mono text-ink-3">{Math.round(c.revenue / 1000)}k</span>
                 </div>
-              );
-            })}
+                <div className="h-[7px] rounded-full bg-sand">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${(c.revenue / maxCat) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+            {data.byCategory.length === 0 && (
+              <div className="dz-sm py-6 text-center text-ink-4">—</div>
+            )}
           </div>
         </div>
       </div>

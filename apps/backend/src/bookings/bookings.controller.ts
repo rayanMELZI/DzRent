@@ -50,6 +50,12 @@ export class BookingsController {
     };
   }
 
+  @Get('agency/revenue') @Roles(...AGENCY)
+  @ApiOperation({ summary: 'Agency: revenue KPIs (w/m/y), 12-month trend, by-category breakdown' })
+  async agencyRevenue(@CurrentUser() caller: AuthenticatedUser) {
+    return { success: true, data: await this.bookings.agencyRevenue(caller) };
+  }
+
   @Get(':id')
   async byId(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() caller: AuthenticatedUser) {
     return { success: true, data: await this.bookings.getById(id, caller) };

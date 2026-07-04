@@ -66,8 +66,9 @@ The agency side is where trust lives, so it ships first.
 - [ ] Real map (Leaflet/OSM) + live tracker positions from GPS ingest data
 - [ ] Side panel: active/alert counts + per-vehicle live speed & violation labels
 
-### 1.5 Revenue (`/revenue`) & Staff (`/staff`)
-- [ ] Revenue: period chips, 3 KPI cards, monthly bar trend, revenue-by-category (still seed)
+### 1.5 Revenue (`/revenue`) & Staff (`/staff`) ✅ (live)
+- [x] Revenue live: rolling w/m/y KPI windows with previous-window trend, real
+      12-month bar trend + by-category breakdown (`GET /bookings/agency/revenue`)
 - [x] Staff live: owner card (session), member cards with role + OTP-pending badge,
       add-member by phone (`POST /agencies/:id/staff`), owner-only removal
 
@@ -83,7 +84,8 @@ The agency side is where trust lives, so it ships first.
       compliance alerts computed from real expiry dates
 - [x] Notification center: `GET /notifications/me` + `readAt` migration + topbar dropdown
       with unread badge (marks read on open)
-- [ ] Replace remaining `lib/seed.ts` reads: revenue → map (the last two mock screens)
+- [ ] Replace the last mock screen: map (deprioritised — needs Leaflet/OSM + live
+      tracker positions)
 
 🎯 An agency owner logs in with a phone number, sees real pending requests, reviews a
 customer's KYC, approves a booking, and manages their fleet — end to end.
@@ -145,9 +147,9 @@ Goal: the mobile funnel, installable and tolerant of unstable data.
 
 ## Immediate next 3 tasks
 
-1. **Revenue live (1.5):** aggregate completed bookings/invoices per period into the
-   revenue screen's KPIs and monthly trend (backend aggregation endpoint + hook).
-2. **DamageReport & Review modules (Phase 2):** the schema exists; add their HTTP
+1. **DamageReport & Review modules (Phase 2):** the schema exists; add their HTTP
    layer so the dashboard's trust/feedback surfaces have endpoints to call.
+2. **Golden-path e2e + unit tests (Phase 2):** the money/legal paths (bookings,
+   payments, contracts, kyc) are still untested; gate them in CI.
 3. **GPS map (1.4, when reprioritised):** Leaflet/OSM canvas fed by real tracker
    positions (`GpsTrackingLog` latest-per-vehicle endpoint).
