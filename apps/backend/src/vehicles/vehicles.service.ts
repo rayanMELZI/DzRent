@@ -1,5 +1,11 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { UserRole, VehicleDocumentType, VehicleStatus } from '@prisma/client';
+import {
+  Prisma,
+  TransmissionType,
+  UserRole,
+  VehicleDocumentType,
+  VehicleStatus,
+} from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -22,6 +28,69 @@ import {
 
 const PHOTO_MAX = 8 * 1024 * 1024;
 const DOC_MAX = 10 * 1024 * 1024;
+
+export interface BookableVehicleFilter {
+  wilayaId?: number;
+  agencyId?: string;
+  vehicleId?: string;
+  /** When both are given, vehicles with an overlapping blocking booking are excluded. */
+  from?: Date;
+  until?: Date;
+  categorySlug?: string;
+  transmission?: TransmissionType;
+  seatsMin?: number;
+}
+
+/**
+ * The single definition of "a client can book this vehicle": available, legally
+ * compliant (insurance + visite technique + GPS), owned by a verified, active,
+ * non-suspended agency, and — for a given period — inside its availability window
+ * and free of overlapping blocking bookings. Shared by the authenticated vehicle
+ * search and the public catalogue so the two can never drift apart.
+ */
+export function bookableVehicleWhere(f: BookableVehicleFilter): Prisma.VehicleWhereInput {
+  const period = f.from && f.until ? { from: f.from, until: f.until } : null;
+  return {
+    deletedAt: null,
+    status: VehicleStatus.AVAILABLE,
+    hasValidInsurance: true,
+    hasValidVisite: true,
+    hasGpsDevice: true,
+    ...(f.vehicleId && { id: f.vehicleId }),
+    ...(f.agencyId && { agencyId: f.agencyId }),
+    agency: {
+      isVerified: true,
+      isActive: true,
+      isSuspended: false,
+      deletedAt: null,
+      ...(f.wilayaId && { wilayaId: f.wilayaId }),
+    },
+    ...(f.categorySlug && { category: { slug: f.categorySlug } }),
+    ...(f.transmission && { transmission: f.transmission }),
+    ...(f.seatsMin && { seats: { gte: f.seatsMin } }),
+    ...(period && {
+      AND: [
+        { OR: [{ availableFrom: null }, { availableFrom: { lte: period.from } }] },
+        { OR: [{ availableUntil: null }, { availableUntil: { gte: period.until } }] },
+      ],
+      NOT: {
+        bookings: {
+          some: {
+            status: { in: BLOCKING_BOOKING_STATUSES },
+            OR: [
+              { confirmedFrom: { lt: period.until }, confirmedUntil: { gt: period.from } },
+              {
+                confirmedFrom: null,
+                requestedFrom: { lt: period.until },
+                requestedUntil: { gt: period.from },
+              },
+            ],
+          },
+        },
+      },
+    }),
+  };
+}
 
 @Injectable()
 export class VehiclesService {
@@ -348,38 +417,14 @@ export class VehiclesService {
     const page = q.page ?? 1;
     const limit = q.limit ?? 20;
 
-    const where = {
-      deletedAt: null,
-      status: VehicleStatus.AVAILABLE,
-      hasValidInsurance: true,
-      hasValidVisite: true,
-      hasGpsDevice: true,
-      agency: {
-        isVerified: true,
-        isActive: true,
-        isSuspended: false,
-        deletedAt: null,
-        wilayaId: q.wilayaId,
-      },
-      ...(q.categorySlug && { category: { slug: q.categorySlug } }),
-      ...(q.transmission && { transmission: q.transmission }),
-      ...(q.seatsMin && { seats: { gte: q.seatsMin } }),
-      AND: [
-        { OR: [{ availableFrom: null }, { availableFrom: { lte: from } }] },
-        { OR: [{ availableUntil: null }, { availableUntil: { gte: until } }] },
-      ],
-      NOT: {
-        bookings: {
-          some: {
-            status: { in: BLOCKING_BOOKING_STATUSES },
-            OR: [
-              { confirmedFrom: { lt: until }, confirmedUntil: { gt: from } },
-              { confirmedFrom: null, requestedFrom: { lt: until }, requestedUntil: { gt: from } },
-            ],
-          },
-        },
-      },
-    };
+    const where = bookableVehicleWhere({
+      wilayaId: q.wilayaId,
+      from,
+      until,
+      categorySlug: q.categorySlug,
+      transmission: q.transmission,
+      seatsMin: q.seatsMin,
+    });
 
     const [vehicles, total] = await Promise.all([
       this.prisma.vehicle.findMany({
