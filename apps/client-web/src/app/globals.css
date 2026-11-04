@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * DzRent base layer + design-system utilities.
+ * Ported from the design handoff (`tokens.jsx`) so production matches the
+ * approved hi-fi prototype. RTL is a true layout mirror via logical properties.
+ */
+@layer base {
+  :root {
+    --font-sans: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+    --font-arabic: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+    color: #1d2421;
+    background: #f6f3ec;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  [dir='rtl'] body,
+  [dir='rtl'] {
+    font-family: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #ddd7ca;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid #0f5249;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Directional glyphs flip in RTL. */
+  [dir='rtl'] .dz-flip {
+    transform: scaleX(-1);
+  }
+
+  .dz-mono {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.01em;
+  }
+  .dz-tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Type scale. */
+  .dz-display {
+    font-size: 38px;
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .dz-h1 {
+    font-size: 24px;
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .dz-h2 {
+    font-size: 19px;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .dz-h3 {
+    font-size: 16px;
+    line-height: 1.25;
+    font-weight: 600;
+  }
+  .dz-body {
+    font-size: 15px;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+  .dz-sm {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .dz-xs {
+    font-size: 11.5px;
+    line-height: 1.4;
+  }
+  .dz-label {
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+@layer utilities {
+  /* Entrance helpers — opacity-free so content is never hidden when
+     frozen / printed / reduced-motion. */
+  @keyframes dzFadeUp {
+    from {
+      transform: translateY(9px);
+    }
+    to {
+      transform: none;
+    }
+  }
+  .dz-enter {
+    animation: dzFadeUp 0.34s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+
+  @keyframes dzScaleIn {
+    from {
+      transform: scale(0.975);
+    }
+    to {
+      transform: none;
+    }
+  }
+  .dz-pop {
+    animation: dzScaleIn 0.24s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+
+  @keyframes dzPulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+  .dz-pulse {
+    animation: dzPulse 1.4s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dz-enter,
+    .dz-pop,
+    .dz-pulse {
+      animation: none;
+    }
+  }
+}
