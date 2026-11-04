@@ -1,7 +1,8 @@
 # DzRent production stack (single VM, fronted by nginx + Cloudflare Tunnel).
 #
 # backend  -> 127.0.0.1:${BACKEND_HOST_PORT:-3001}   (nginx /api -> here)
-# frontend -> 127.0.0.1:${FRONTEND_HOST_PORT:-3002}  (nginx /    -> here)
+# frontend -> 127.0.0.1:${FRONTEND_HOST_PORT:-3002}  (agency dashboard: nginx / -> here)
+# client   -> 127.0.0.1:${CLIENT_HOST_PORT:-3006}    (client website:   nginx / -> here)
 # postgres / redis / minio are internal to the compose network (no host ports).
 #
 # The .env in this directory is BOTH the backend's runtime env_file AND the source
@@ -112,6 +113,28 @@ services:
         condition: service_started
     ports:
       - '127.0.0.1:${FRONTEND_HOST_PORT:-3002}:3000'
+    networks: [dznet]
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+
+  # Client website (public marketplace). Same-origin API: nginx routes
+  # dzrent.rayanemelzi.dev/api/* to the backend, everything else here.
+  client:
+    build:
+      context: .
+      dockerfile: apps/client-web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${CLIENT_PUBLIC_API_URL:-https://dzrent.rayanemelzi.dev/api/v1}
+        NEXT_PUBLIC_AGENCY_URL: ${AGENCY_PUBLIC_URL:-https://dzrent-agence.rayanemelzi.dev}
+    image: dzrent-client-web
+    container_name: dzrent_client
+    restart: always
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - '127.0.0.1:${CLIENT_HOST_PORT:-3006}:3000'
     networks: [dznet]
     logging:
       driver: json-file

@@ -49,10 +49,13 @@ jobs:
           NODE_ENV=production
           APP_PORT=3000
           APP_SECRET=${APP_SECRET}
-          CORS_ORIGINS=https://dzrent-agence.rayanemelzi.dev
+          CORS_ORIGINS=https://dzrent-agence.rayanemelzi.dev,https://dzrent.rayanemelzi.dev
           NEXT_PUBLIC_API_URL=https://dzrent-agence.rayanemelzi.dev/api/v1
+          CLIENT_PUBLIC_API_URL=https://dzrent.rayanemelzi.dev/api/v1
+          AGENCY_PUBLIC_URL=https://dzrent-agence.rayanemelzi.dev
           BACKEND_HOST_PORT=3001
           FRONTEND_HOST_PORT=3002
+          CLIENT_HOST_PORT=3006
           POSTGRES_USER=dzrent
           POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
           POSTGRES_DB=dzrent
