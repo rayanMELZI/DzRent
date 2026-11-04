@@ -12,7 +12,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --max-warnings 0",
+    "lint": "eslint src --ext .ts,.tsx --max-warnings 0",
     "clean": "rimraf .turbo node_modules"
   },
   "devDependencies": {

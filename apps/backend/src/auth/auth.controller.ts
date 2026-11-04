@@ -1,27 +1,11 @@
-import {
-  Controller,
-  Post,
-  Body,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
-  Get,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
 import { AuthService } from './auth.service';
-import { RequestOtpDto, VerifyOtpDto, RefreshTokenDto } from './dto/auth.dto';
+import { RequestOtpDto, VerifyOtpDto } from './dto/auth.dto';
 import { JwtAuthGuard, JwtRefreshGuard } from './guards/auth.guards';
-import {
-  CurrentUser,
-  AuthenticatedUser,
-} from '../common/decorators/current-user.decorator';
+import { CurrentUser, AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { JwtRefreshPayload } from './interfaces/jwt-payload.interface';
 
 @ApiTags('auth')
@@ -50,9 +34,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'OTP sent successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid phone number format.' })
   @ApiResponse({ status: 429, description: 'Too many requests — cooldown active.' })
-  async requestOtp(
-    @Body() dto: RequestOtpDto,
-  ): Promise<{ success: true; message: string }> {
+  async requestOtp(@Body() dto: RequestOtpDto): Promise<{ success: true; message: string }> {
     const result = await this.authService.requestOtp(dto);
     return { success: true, ...result };
   }
@@ -127,11 +109,7 @@ export class AuthController {
   async refresh(
     @CurrentUser() payload: JwtRefreshPayload & { rawToken: string },
   ): Promise<{ success: true } & Awaited<ReturnType<AuthService['refreshTokens']>>> {
-    const result = await this.authService.refreshTokens(
-      payload.sub,
-      payload.jti,
-      payload.rawToken,
-    );
+    const result = await this.authService.refreshTokens(payload.sub, payload.jti, payload.rawToken);
     return { success: true, ...result };
   }
 
@@ -169,9 +147,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user from access token' })
   @ApiResponse({ status: 200, description: 'Current authenticated user.' })
   @ApiResponse({ status: 401, description: 'Not authenticated.' })
-  getMe(
-    @CurrentUser() user: AuthenticatedUser,
-  ): { success: true; user: AuthenticatedUser } {
+  getMe(@CurrentUser() user: AuthenticatedUser): { success: true; user: AuthenticatedUser } {
     return { success: true, user };
   }
 }
