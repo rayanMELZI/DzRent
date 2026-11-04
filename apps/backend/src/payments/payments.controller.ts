@@ -16,10 +16,18 @@ export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
 
   @Post('booking/:bookingId/initiate')
-  @ApiBearerAuth('access-token') @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Client: start CIB/Edahabia payment for a booking' })
-  async initiate(@Param('bookingId', ParseUUIDPipe) bookingId: string, @CurrentUser() caller: AuthenticatedUser, @Body() dto: InitiatePaymentDto) {
-    return { success: true, data: await this.payments.initiateBookingPayment(bookingId, caller, dto.paymentMethod) };
+  async initiate(
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+    @CurrentUser() caller: AuthenticatedUser,
+    @Body() dto: InitiatePaymentDto,
+  ) {
+    return {
+      success: true,
+      data: await this.payments.initiateBookingPayment(bookingId, caller, dto.paymentMethod),
+    };
   }
 
   @Post('webhook/confirm')
@@ -30,9 +38,18 @@ export class PaymentsController {
   }
 
   @Post('booking/:bookingId/cash')
-  @ApiBearerAuth('access-token') @UseGuards(JwtAuthGuard, RolesGuard) @Roles(UserRole.AGENCY_OWNER, UserRole.AGENCY_STAFF)
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.AGENCY_OWNER, UserRole.AGENCY_STAFF)
   @ApiOperation({ summary: 'Agency: record a cash payment' })
-  async cash(@Param('bookingId', ParseUUIDPipe) bookingId: string, @CurrentUser() caller: AuthenticatedUser, @Body() dto: RecordCashPaymentDto) {
-    return { success: true, data: await this.payments.recordCash(bookingId, caller, dto.amountDA, dto.note) };
+  async cash(
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+    @CurrentUser() caller: AuthenticatedUser,
+    @Body() dto: RecordCashPaymentDto,
+  ) {
+    return {
+      success: true,
+      data: await this.payments.recordCash(bookingId, caller, dto.amountDA, dto.note),
+    };
   }
 }

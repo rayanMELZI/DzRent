@@ -43,7 +43,10 @@ interface AuthValue {
   }) => Promise<AuthUser>;
   logout: () => Promise<void>;
   /** Authenticated request that refreshes the access token once on a 401. */
-  authedRequest: <T>(path: string, options?: { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown }) => Promise<T>;
+  authedRequest: <T>(
+    path: string,
+    options?: { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown },
+  ) => Promise<T>;
 }
 
 const STORAGE = {

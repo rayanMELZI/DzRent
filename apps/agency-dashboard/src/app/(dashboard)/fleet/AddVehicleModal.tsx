@@ -26,7 +26,13 @@ const TRANSMISSIONS = [
   { id: 'AUTOMATIC', fr: 'Automatique', ar: 'أوتوماتيك' },
 ] as const;
 
-export function AddVehicleModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+export function AddVehicleModal({
+  onClose,
+  onAdded,
+}: {
+  onClose: () => void;
+  onAdded: () => void;
+}) {
   const { t, lang } = useLang();
   const create = useCreateVehicle();
   const [error, setError] = useState<string | null>(null);
@@ -110,28 +116,60 @@ export function AddVehicleModal({ onClose, onAdded }: { onClose: () => void; onA
         <div className="flex flex-col gap-3.5">
           <div className="grid grid-cols-2 gap-3">
             <Field label={lang === 'ar' ? 'الماركة' : 'Marque'}>
-              <input value={form.make} onChange={(e) => set('make')(e.target.value)} className={inputClass} placeholder="Hyundai" autoFocus />
+              <input
+                value={form.make}
+                onChange={(e) => set('make')(e.target.value)}
+                className={inputClass}
+                placeholder="Hyundai"
+                autoFocus
+              />
             </Field>
             <Field label={lang === 'ar' ? 'الطراز' : 'Modèle'}>
-              <input value={form.model} onChange={(e) => set('model')(e.target.value)} className={inputClass} placeholder="Tucson" />
+              <input
+                value={form.model}
+                onChange={(e) => set('model')(e.target.value)}
+                className={inputClass}
+                placeholder="Tucson"
+              />
             </Field>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label={lang === 'ar' ? 'السنة' : 'Année'}>
-              <input value={form.year} onChange={(e) => set('year')(e.target.value.replace(/\D/g, '').slice(0, 4))} className={`${inputClass} dz-mono`} inputMode="numeric" />
+              <input
+                value={form.year}
+                onChange={(e) => set('year')(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                className={`${inputClass} dz-mono`}
+                inputMode="numeric"
+              />
             </Field>
             <Field label={lang === 'ar' ? 'اللون' : 'Couleur'}>
-              <input value={form.color} onChange={(e) => set('color')(e.target.value)} className={inputClass} placeholder={lang === 'ar' ? 'أبيض' : 'Blanc'} />
+              <input
+                value={form.color}
+                onChange={(e) => set('color')(e.target.value)}
+                className={inputClass}
+                placeholder={lang === 'ar' ? 'أبيض' : 'Blanc'}
+              />
             </Field>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label={t('fleet_plate')} hint="NNNNNN-WW">
-              <input value={form.licensePlate} onChange={(e) => set('licensePlate')(e.target.value)} className={`${inputClass} dz-mono`} placeholder="123456-16" dir="ltr" />
+              <input
+                value={form.licensePlate}
+                onChange={(e) => set('licensePlate')(e.target.value)}
+                className={`${inputClass} dz-mono`}
+                placeholder="123456-16"
+                dir="ltr"
+              />
             </Field>
             <Field label={lang === 'ar' ? 'رقم الهيكل (VIN)' : 'N° de châssis (VIN)'}>
-              <input value={form.chassisNumber} onChange={(e) => set('chassisNumber')(e.target.value)} className={`${inputClass} dz-mono`} dir="ltr" />
+              <input
+                value={form.chassisNumber}
+                onChange={(e) => set('chassisNumber')(e.target.value)}
+                className={`${inputClass} dz-mono`}
+                dir="ltr"
+              />
             </Field>
           </div>
 
@@ -147,10 +185,22 @@ export function AddVehicleModal({ onClose, onAdded }: { onClose: () => void; onA
 
           <div className="grid grid-cols-2 gap-3">
             <Field label={lang === 'ar' ? 'السعر اليومي (دج)' : 'Tarif/jour (DZD)'}>
-              <input value={form.dailyRateDA} onChange={(e) => set('dailyRateDA')(e.target.value.replace(/\D/g, ''))} className={`${inputClass} dz-mono`} inputMode="numeric" placeholder="8000" />
+              <input
+                value={form.dailyRateDA}
+                onChange={(e) => set('dailyRateDA')(e.target.value.replace(/\D/g, ''))}
+                className={`${inputClass} dz-mono`}
+                inputMode="numeric"
+                placeholder="8000"
+              />
             </Field>
             <Field label={lang === 'ar' ? 'الضمان (دج)' : 'Caution (DZD)'}>
-              <input value={form.depositAmountDA} onChange={(e) => set('depositAmountDA')(e.target.value.replace(/\D/g, ''))} className={`${inputClass} dz-mono`} inputMode="numeric" placeholder="45000" />
+              <input
+                value={form.depositAmountDA}
+                onChange={(e) => set('depositAmountDA')(e.target.value.replace(/\D/g, ''))}
+                className={`${inputClass} dz-mono`}
+                inputMode="numeric"
+                placeholder="45000"
+              />
             </Field>
           </div>
 
@@ -164,10 +214,21 @@ export function AddVehicleModal({ onClose, onAdded }: { onClose: () => void; onA
         </div>
 
         <div className="mt-5 flex gap-2.5">
-          <Button variant="ghost" full onClick={onClose} className="shadow-[inset_0_0_0_1px_#DDD7CA]">
+          <Button
+            variant="ghost"
+            full
+            onClick={onClose}
+            className="shadow-[inset_0_0_0_1px_#DDD7CA]"
+          >
             {t('common_cancel')}
           </Button>
-          <Button variant="primary" full icon="plus" onClick={submit} disabled={!canSubmit || create.isPending}>
+          <Button
+            variant="primary"
+            full
+            icon="plus"
+            onClick={submit}
+            disabled={!canSubmit || create.isPending}
+          >
             {t('fleet_add')}
           </Button>
         </div>

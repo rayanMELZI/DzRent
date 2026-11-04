@@ -51,7 +51,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const addRequest = useCallback(
     (payload: Omit<Request, 'id' | 'status' | 'createdAt' | 'justNow'>) => {
       const id = nextId();
-      const req: Request = { id, status: 'pending', createdAt: "à l'instant", justNow: true, ...payload };
+      const req: Request = {
+        id,
+        status: 'pending',
+        createdAt: "à l'instant",
+        justNow: true,
+        ...payload,
+      };
       setRequests((rs) => [req, ...rs]);
       return id;
     },

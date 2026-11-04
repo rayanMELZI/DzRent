@@ -33,7 +33,9 @@ export class ContractsService {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        client: { select: { firstName: true, lastName: true, phone: true, nationalIdNumber: true } },
+        client: {
+          select: { firstName: true, lastName: true, phone: true, nationalIdNumber: true },
+        },
         agency: { select: { name: true, registrationNo: true, taxId: true, wilayaId: true } },
         vehicle: { select: { make: true, model: true, licensePlate: true } },
       },
@@ -58,17 +60,27 @@ export class ContractsService {
 
     const contractRef = await this.nextContractRef();
     const pdf = await buildContractPdf({ booking, clauses, contractRef });
-    const pdfKey = this.storage.buildKey(`contracts/${booking.agencyId}/${bookingId}`, 'application/pdf');
+    const pdfKey = this.storage.buildKey(
+      `contracts/${booking.agencyId}/${bookingId}`,
+      'application/pdf',
+    );
     await this.storage.putBuffer('contracts', pdfKey, pdf, 'application/pdf');
 
     const contract = await this.prisma.rentalContract.create({
       data: {
-        bookingId, contractRef, wilayaId,
+        bookingId,
+        contractRef,
+        wilayaId,
         contractPdfKey: pdfKey,
         appliedClauses: appliedClauses as unknown as Prisma.InputJsonValue,
       },
     });
-    await this.audit.log({ entityType: 'RentalContract', entityId: contract.id, action: 'CONTRACT_GENERATED', newValue: { contractRef, clauses: appliedClauses.length } });
+    await this.audit.log({
+      entityType: 'RentalContract',
+      entityId: contract.id,
+      action: 'CONTRACT_GENERATED',
+      newValue: { contractRef, clauses: appliedClauses.length },
+    });
     return contract;
   }
 
@@ -78,10 +90,17 @@ export class ContractsService {
       include: { booking: { select: { clientId: true, agencyId: true } } },
     });
     if (!contract) throw new NotFoundException('Contract not yet generated.');
-    const isParty = caller.id === contract.booking.clientId || caller.agencyId === contract.booking.agencyId || caller.role === 'ADMIN';
+    const isParty =
+      caller.id === contract.booking.clientId ||
+      caller.agencyId === contract.booking.agencyId ||
+      caller.role === 'ADMIN';
     if (!isParty) throw new ForbiddenException('Not a party to this contract.');
     const downloadUrl = contract.contractPdfKey
-      ? await this.storage.presignDownload('contracts', contract.signedPdfKey ?? contract.contractPdfKey, 300)
+      ? await this.storage.presignDownload(
+          'contracts',
+          contract.signedPdfKey ?? contract.contractPdfKey,
+          300,
+        )
       : null;
     return { ...contract, downloadUrl };
   }
@@ -89,31 +108,46 @@ export class ContractsService {
   /** Client e-signature: HMAC over (contractRef + userId + timestamp). */
   async clientSign(bookingId: string, caller: AuthenticatedUser, ip: string) {
     const contract = await this.prisma.rentalContract.findUnique({
-      where: { bookingId }, include: { booking: { select: { clientId: true } } },
+      where: { bookingId },
+      include: { booking: { select: { clientId: true } } },
     });
     if (!contract) throw new NotFoundException('Contract not found.');
-    if (contract.booking.clientId !== caller.id) throw new ForbiddenException('Only the client can sign.');
-    if (contract.clientSignedAt) throw new BusinessRuleException('ALREADY_SIGNED', 'Contract already signed by client.');
+    if (contract.booking.clientId !== caller.id)
+      throw new ForbiddenException('Only the client can sign.');
+    if (contract.clientSignedAt)
+      throw new BusinessRuleException('ALREADY_SIGNED', 'Contract already signed by client.');
 
     const ts = nowUtc();
-    const signatureHash = hmacSha256Hex(this.config.get<string>('APP_SECRET')!, `${contract.contractRef}:${caller.id}:${ts.toISOString()}`);
+    const signatureHash = hmacSha256Hex(
+      this.config.get<string>('APP_SECRET')!,
+      `${contract.contractRef}:${caller.id}:${ts.toISOString()}`,
+    );
     const updated = await this.prisma.rentalContract.update({
       where: { bookingId },
       data: { clientSignedAt: ts, clientSignatureHash: signatureHash, clientSignatureIp: ip },
     });
-    await this.audit.log({ userId: caller.id, entityType: 'RentalContract', entityId: contract.id, action: 'CONTRACT_SIGNED_CLIENT', ipAddress: ip });
+    await this.audit.log({
+      userId: caller.id,
+      entityType: 'RentalContract',
+      entityId: contract.id,
+      action: 'CONTRACT_SIGNED_CLIENT',
+      ipAddress: ip,
+    });
     return { contractRef: updated.contractRef, clientSignedAt: updated.clientSignedAt };
   }
 
   /** Agency counter-signature at handover. */
   async agencySign(bookingId: string, caller: AuthenticatedUser) {
     const contract = await this.prisma.rentalContract.findUnique({
-      where: { bookingId }, include: { booking: { select: { agencyId: true } } },
+      where: { bookingId },
+      include: { booking: { select: { agencyId: true } } },
     });
     if (!contract) throw new NotFoundException('Contract not found.');
-    if (caller.agencyId !== contract.booking.agencyId && caller.role !== 'ADMIN') throw new ForbiddenException('Wrong agency.');
+    if (caller.agencyId !== contract.booking.agencyId && caller.role !== 'ADMIN')
+      throw new ForbiddenException('Wrong agency.');
     const updated = await this.prisma.rentalContract.update({
-      where: { bookingId }, data: { agencySignedAt: nowUtc(), agencySignerUserId: caller.id },
+      where: { bookingId },
+      data: { agencySignedAt: nowUtc(), agencySignerUserId: caller.id },
     });
     return { contractRef: updated.contractRef, agencySignedAt: updated.agencySignedAt };
   }
@@ -123,7 +157,9 @@ export class ContractsService {
     const year = nowUtc().getUTCFullYear();
     return this.prisma.$transaction(async (tx: any) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'contract_ref_' + year}))`;
-      const count = await tx.rentalContract.count({ where: { contractRef: { startsWith: `CTR-${year}-` } } });
+      const count = await tx.rentalContract.count({
+        where: { contractRef: { startsWith: `CTR-${year}-` } },
+      });
       return `CTR-${year}-${String(count + 1).padStart(5, '0')}`;
     });
   }

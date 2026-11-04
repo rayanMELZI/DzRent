@@ -9,12 +9,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-dzrent_dev}
     # Host port is configurable to avoid clashes with other local Postgres
     # instances. Override with POSTGRES_HOST_PORT in .env (container stays 5432).
-    ports: ["${POSTGRES_HOST_PORT:-5432}:5432"]
+    ports: ['${POSTGRES_HOST_PORT:-5432}:5432']
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dzrent} -d ${POSTGRES_DB:-dzrent_dev}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-dzrent} -d ${POSTGRES_DB:-dzrent_dev}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,9 +22,9 @@ services:
     image: redis:7-alpine
     container_name: dzrent_redis
     restart: unless-stopped
-    ports: ["${REDIS_HOST_PORT:-6379}:6379"]
-    volumes: ["redis_data:/data"]
-    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 10s, timeout: 5s, retries: 5 }
+    ports: ['${REDIS_HOST_PORT:-6379}:6379']
+    volumes: ['redis_data:/data']
+    healthcheck: { test: ['CMD', 'redis-cli', 'ping'], interval: 10s, timeout: 5s, retries: 5 }
   minio:
     image: minio/minio:latest
     container_name: dzrent_minio
@@ -33,8 +33,8 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
-    ports: ["9000:9000", "9001:9001"]
-    volumes: ["minio_data:/data"]
+    ports: ['9000:9000', '9001:9001']
+    volumes: ['minio_data:/data']
 volumes:
   postgres_data:
   redis_data:

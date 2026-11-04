@@ -9,7 +9,12 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { BusinessRuleException } from '../common/exceptions/app.exceptions';
 import { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import {
-  AddStaffDto, AgencyUploadIntentDto, CreateAgencyDto, SubmitAgencyDocumentDto, UpdateAgencyDto, VerifyAgencyDto,
+  AddStaffDto,
+  AgencyUploadIntentDto,
+  CreateAgencyDto,
+  SubmitAgencyDocumentDto,
+  UpdateAgencyDto,
+  VerifyAgencyDto,
 } from './dto/agency.dto';
 
 const AGENCY_DOC_MAX_BYTES = 10 * 1024 * 1024;
@@ -24,10 +29,15 @@ export class AgenciesService {
   ) {}
 
   /** Caller must be the owner of agencyId, an active staff member, or ADMIN. */
-  private async assertAgencyAccess(agencyId: string, caller: AuthenticatedUser, ownerOnly = false): Promise<void> {
+  private async assertAgencyAccess(
+    agencyId: string,
+    caller: AuthenticatedUser,
+    ownerOnly = false,
+  ): Promise<void> {
     if (caller.role === UserRole.ADMIN) return;
     const agency = await this.prisma.agency.findUnique({
-      where: { id: agencyId, deletedAt: null }, select: { ownerId: true },
+      where: { id: agencyId, deletedAt: null },
+      select: { ownerId: true },
     });
     if (!agency) throw new NotFoundException('Agency not found.');
     if (agency.ownerId === caller.id) return;
@@ -38,9 +48,15 @@ export class AgenciesService {
   // ── Create (onboarding step 1) ───────────────────────────────────────────
   async create(caller: AuthenticatedUser, dto: CreateAgencyDto) {
     const slug =
-      dto.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-        .slice(0, 90) + '-' + randomBytes(3).toString('hex');
+      dto.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 90) +
+      '-' +
+      randomBytes(3).toString('hex');
 
     const agency = await this.prisma.agency.create({
       data: {
@@ -72,8 +88,11 @@ export class AgenciesService {
     }
 
     await this.audit.log({
-      userId: caller.id, entityType: 'Agency', entityId: agency.id,
-      action: 'AGENCY_CREATED', newValue: { name: agency.name, wilayaId: agency.wilayaId },
+      userId: caller.id,
+      entityType: 'Agency',
+      entityId: agency.id,
+      action: 'AGENCY_CREATED',
+      newValue: { name: agency.name, wilayaId: agency.wilayaId },
     });
 
     return {
@@ -88,7 +107,10 @@ export class AgenciesService {
   // ── Verification documents ───────────────────────────────────────────────
   async uploadIntent(agencyId: string, caller: AuthenticatedUser, dto: AgencyUploadIntentDto) {
     await this.assertAgencyAccess(agencyId, caller, true);
-    const fileKey = this.storage.buildKey(`agencies/${agencyId}/${dto.documentType.toLowerCase()}`, dto.mimeType);
+    const fileKey = this.storage.buildKey(
+      `agencies/${agencyId}/${dto.documentType.toLowerCase()}`,
+      dto.mimeType,
+    );
     const uploadUrl = await this.storage.presignUpload('kyc', fileKey, dto.mimeType); // same encrypted bucket
     return { fileKey, uploadUrl, expiresInSeconds: 300 };
   }
@@ -100,7 +122,12 @@ export class AgenciesService {
     }
     const { mimeType } = await this.storage.verifyObject('kyc', dto.fileKey, AGENCY_DOC_MAX_BYTES);
     const doc = await this.prisma.agencyDocument.create({
-      data: { agencyId, documentType: dto.documentType, fileKey: dto.fileKey, fileMimeType: mimeType },
+      data: {
+        agencyId,
+        documentType: dto.documentType,
+        fileKey: dto.fileKey,
+        fileMimeType: mimeType,
+      },
     });
     return { id: doc.id, documentType: doc.documentType };
   }
@@ -110,11 +137,21 @@ export class AgenciesService {
     const where = { isVerified: false, deletedAt: null };
     const [items, total] = await Promise.all([
       this.prisma.agency.findMany({
-        where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'asc' },
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'asc' },
         select: {
-          id: true, name: true, wilayaId: true, registrationNo: true, taxId: true, createdAt: true,
+          id: true,
+          name: true,
+          wilayaId: true,
+          registrationNo: true,
+          taxId: true,
+          createdAt: true,
           owner: { select: { firstName: true, lastName: true, phone: true } },
-          documents: { select: { id: true, documentType: true, isApproved: true, createdAt: true } },
+          documents: {
+            select: { id: true, documentType: true, isApproved: true, createdAt: true },
+          },
         },
       }),
       this.prisma.agency.count({ where }),
@@ -138,8 +175,11 @@ export class AgenciesService {
         data: { isVerified: true, verifiedAt: new Date(), verifiedBy: adminId },
       });
       await this.notifications.sendSms({
-        userId: agency.owner.id, phone: agency.owner.phone, locale: agency.owner.locale as 'fr' | 'ar',
-        templateId: 'AGENCY_VERIFIED', vars: { agencyName: agency.name },
+        userId: agency.owner.id,
+        phone: agency.owner.phone,
+        locale: agency.owner.locale as 'fr' | 'ar',
+        templateId: 'AGENCY_VERIFIED',
+        vars: { agencyName: agency.name },
       });
     } else {
       await this.prisma.agency.update({
@@ -148,7 +188,9 @@ export class AgenciesService {
       });
     }
     await this.audit.log({
-      userId: adminId, entityType: 'Agency', entityId: agencyId,
+      userId: adminId,
+      entityType: 'Agency',
+      entityId: agencyId,
       action: dto.approved ? 'AGENCY_VERIFIED' : 'AGENCY_VERIFICATION_REJECTED',
       newValue: { notes: dto.notes },
     });
@@ -162,7 +204,10 @@ export class AgenciesService {
     }
     const agencies = await this.prisma.agency.findMany({
       where: { ownerId: caller.id, deletedAt: null },
-      include: { wilaya: { select: { nameFr: true, nameAr: true } }, _count: { select: { vehicles: true, staff: true } } },
+      include: {
+        wilaya: { select: { nameFr: true, nameAr: true } },
+        _count: { select: { vehicles: true, staff: true } },
+      },
     });
     return agencies;
   }
@@ -194,19 +239,31 @@ export class AgenciesService {
     if (!user) {
       user = await this.prisma.user.create({
         data: {
-          phone: dto.phone, firstName: dto.firstName, lastName: dto.lastName,
-          role: UserRole.AGENCY_STAFF, status: UserStatus.PENDING_VERIFICATION,
+          phone: dto.phone,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          role: UserRole.AGENCY_STAFF,
+          status: UserStatus.PENDING_VERIFICATION,
         },
       });
     } else {
       const existing = await this.prisma.agencyStaff.findUnique({ where: { userId: user.id } });
       if (existing) {
-        throw new BusinessRuleException('ALREADY_STAFF', 'This person is already staff at an agency.');
+        throw new BusinessRuleException(
+          'ALREADY_STAFF',
+          'This person is already staff at an agency.',
+        );
       }
       if (user.role === UserRole.CLIENT) {
-        await this.prisma.user.update({ where: { id: user.id }, data: { role: UserRole.AGENCY_STAFF } });
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { role: UserRole.AGENCY_STAFF },
+        });
       } else if (user.role !== UserRole.AGENCY_STAFF) {
-        throw new BusinessRuleException('INVALID_ROLE', `Cannot add a ${user.role} as agency staff.`);
+        throw new BusinessRuleException(
+          'INVALID_ROLE',
+          `Cannot add a ${user.role} as agency staff.`,
+        );
       }
     }
 
@@ -214,8 +271,11 @@ export class AgenciesService {
       data: { userId: user.id, agencyId, staffRole: dto.staffRole ?? StaffRole.AGENT },
     });
     await this.audit.log({
-      userId: caller.id, entityType: 'AgencyStaff', entityId: staff.id,
-      action: 'STAFF_ADDED', newValue: { phone: dto.phone, staffRole: dto.staffRole },
+      userId: caller.id,
+      entityType: 'AgencyStaff',
+      entityId: staff.id,
+      action: 'STAFF_ADDED',
+      newValue: { phone: dto.phone, staffRole: dto.staffRole },
     });
     return { staffId: staff.id, userId: user.id, staffRole: staff.staffRole };
   }
@@ -224,7 +284,9 @@ export class AgenciesService {
     await this.assertAgencyAccess(agencyId, caller);
     return this.prisma.agencyStaff.findMany({
       where: { agencyId },
-      include: { user: { select: { id: true, firstName: true, lastName: true, phone: true, status: true } } },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, phone: true, status: true } },
+      },
       orderBy: { hiredAt: 'asc' },
     });
   }

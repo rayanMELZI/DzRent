@@ -15,13 +15,13 @@ container internally (so: no CORS).
 
 ## Stack (`docker-compose.prod.yml`)
 
-| Service | Image | Exposure |
-|---|---|---|
-| `postgres` | postgis/postgis:16 | internal only |
-| `redis` | redis:7 | internal only |
-| `minio` (+ `minio-init`) | minio/minio | internal only |
-| `backend` | built from `apps/backend/Dockerfile` | `127.0.0.1:3001` |
-| `frontend` | built from `apps/agency-dashboard/Dockerfile` | `127.0.0.1:3002` |
+| Service                  | Image                                         | Exposure         |
+| ------------------------ | --------------------------------------------- | ---------------- |
+| `postgres`               | postgis/postgis:16                            | internal only    |
+| `redis`                  | redis:7                                       | internal only    |
+| `minio` (+ `minio-init`) | minio/minio                                   | internal only    |
+| `backend`                | built from `apps/backend/Dockerfile`          | `127.0.0.1:3001` |
+| `frontend`               | built from `apps/agency-dashboard/Dockerfile` | `127.0.0.1:3002` |
 
 The backend entrypoint runs `prisma migrate deploy` on every boot. Reference data
 (58 wilayas, categories, legal clauses, config) is seeded **once** (see below).
@@ -37,27 +37,31 @@ secrets, and runs `docker compose -f docker-compose.prod.yml up -d --build` on t
 server. The image builds on the VM — no registry, no GitHub deploy key needed.
 
 ### 1. Repository secrets
+
 Settings → Secrets and variables → Actions:
 
-| Secret | Value |
-|---|---|
-| `VM_HOST` | `nanovm.rayanemelzi.dev` (the Access SSH hostname) |
-| `VM_USER` | `deploy` |
-| `VM_SSH_KEY` | private key authorised for `deploy` (the `id_rsa_nanovm` key) |
-| `VM_APP_DIR` | `/home/deploy/dzrent` |
-| `CF_ACCESS_CLIENT_ID` | Cloudflare Access service-token Client ID |
-| `CF_ACCESS_CLIENT_SECRET` | Cloudflare Access service-token Client Secret |
-| `APP_SECRET` `JWT_SECRET` `JWT_REFRESH_SECRET` `GPS_INGEST_SECRET` | each `openssl rand -hex 32` (all different) |
-| `POSTGRES_PASSWORD` `S3_SECRET_KEY` | strong passwords |
+| Secret                                                             | Value                                                         |
+| ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `VM_HOST`                                                          | `nanovm.rayanemelzi.dev` (the Access SSH hostname)            |
+| `VM_USER`                                                          | `deploy`                                                      |
+| `VM_SSH_KEY`                                                       | private key authorised for `deploy` (the `id_rsa_nanovm` key) |
+| `VM_APP_DIR`                                                       | `/home/deploy/dzrent`                                         |
+| `CF_ACCESS_CLIENT_ID`                                              | Cloudflare Access service-token Client ID                     |
+| `CF_ACCESS_CLIENT_SECRET`                                          | Cloudflare Access service-token Client Secret                 |
+| `APP_SECRET` `JWT_SECRET` `JWT_REFRESH_SECRET` `GPS_INGEST_SECRET` | each `openssl rand -hex 32` (all different)                   |
+| `POSTGRES_PASSWORD` `S3_SECRET_KEY`                                | strong passwords                                              |
 
 ### 2. Cloudflare Access service token (one-time)
+
 The runner can't log in via a browser, so it uses a service token:
+
 1. Zero Trust → **Access → Service Auth → Service Tokens** → create one; copy the
    Client ID/Secret into the `CF_ACCESS_*` secrets.
 2. Open the Access application protecting the `nanovm.rayanemelzi.dev` SSH app →
-   **Policies** → add a policy *Action: Service Auth* including that token.
+   **Policies** → add a policy _Action: Service Auth_ including that token.
 
 ### 3. Deploy
+
 Push to `production` (or run the workflow manually). The `deploy` user only needs
 to be in the `docker` group (it already is).
 

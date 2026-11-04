@@ -1,6 +1,10 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GatewayConfirmResult, GatewayInitResult, IPaymentGateway } from './payment-gateway.interface';
+import {
+  GatewayConfirmResult,
+  GatewayInitResult,
+  IPaymentGateway,
+} from './payment-gateway.interface';
 
 /**
  * SatimGateway — real Algerian card processing (CIB + Edahabia via SATIM).
@@ -29,29 +33,47 @@ export class SatimGateway implements IPaymentGateway {
 
   private async call(path: string, params: Record<string, string>): Promise<any> {
     const url = new URL(`${this.base}/${path}`);
-    Object.entries({ userName: this.user, password: this.pass, ...params }).forEach(([k, v]) => url.searchParams.set(k, v));
+    Object.entries({ userName: this.user, password: this.pass, ...params }).forEach(([k, v]) =>
+      url.searchParams.set(k, v),
+    );
     const res = await fetch(url.toString(), { method: 'POST' });
     if (!res.ok) throw new ServiceUnavailableException('SATIM gateway error.');
     return res.json();
   }
 
-  async initiate(p: { orderRef: string; amountDA: number; intent: 'capture' | 'authorize'; returnUrl: string }): Promise<GatewayInitResult> {
+  async initiate(p: {
+    orderRef: string;
+    amountDA: number;
+    intent: 'capture' | 'authorize';
+    returnUrl: string;
+  }): Promise<GatewayInitResult> {
     // SATIM amounts are in centimes (DA × 100). register.do for capture; registerPreAuth.do for authorize.
     const endpoint = p.intent === 'authorize' ? 'registerPreAuth.do' : 'register.do';
     const data = await this.call(endpoint, {
-      orderNumber: p.orderRef, amount: String(Math.round(p.amountDA * 100)),
-      returnUrl: p.returnUrl, currency: '012', // DZD ISO 4217 numeric
+      orderNumber: p.orderRef,
+      amount: String(Math.round(p.amountDA * 100)),
+      returnUrl: p.returnUrl,
+      currency: '012', // DZD ISO 4217 numeric
     });
-    if (!data.orderId) throw new ServiceUnavailableException(data.errorMessage ?? 'SATIM register failed.');
+    if (!data.orderId)
+      throw new ServiceUnavailableException(data.errorMessage ?? 'SATIM register failed.');
     return { externalRef: data.orderId, paymentUrl: data.formUrl };
   }
   async confirm(externalRef: string): Promise<GatewayConfirmResult> {
     const data = await this.call('confirmOrder.do', { orderId: externalRef });
     const success = data.orderStatus === 2 || data.orderStatus === 1; // 2=captured,1=pre-auth held
-    return { success, externalRef, rawResponse: data, errorMessage: success ? undefined : data.errorMessage };
+    return {
+      success,
+      externalRef,
+      rawResponse: data,
+      errorMessage: success ? undefined : data.errorMessage,
+    };
   }
   async capture(externalRef: string, amountDA: number): Promise<GatewayConfirmResult> {
-    const data = await this.call('deposit.do', { orderId: externalRef, amount: String(Math.round(amountDA * 100)) });
+    const data = await this.call('deposit.do', {
+      orderId: externalRef,
+      amount: String(Math.round(amountDA * 100)),
+    });
     return { success: data.errorCode === '0', externalRef, rawResponse: data };
   }
   async release(externalRef: string): Promise<GatewayConfirmResult> {
@@ -59,7 +81,10 @@ export class SatimGateway implements IPaymentGateway {
     return { success: data.errorCode === '0', externalRef, rawResponse: data };
   }
   async refund(externalRef: string, amountDA: number): Promise<GatewayConfirmResult> {
-    const data = await this.call('refund.do', { orderId: externalRef, amount: String(Math.round(amountDA * 100)) });
+    const data = await this.call('refund.do', {
+      orderId: externalRef,
+      amount: String(Math.round(amountDA * 100)),
+    });
     return { success: data.errorCode === '0', externalRef, rawResponse: data };
   }
 }

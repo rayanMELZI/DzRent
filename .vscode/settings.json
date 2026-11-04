@@ -5,8 +5,6 @@
     "source.fixAll.eslint": "explicit"
   },
   "eslint.workingDirectories": [{ "mode": "auto" }],
-  "tailwindCSS.experimental.classRegex": [
-    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
-  ],
+  "tailwindCSS.experimental.classRegex": [["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]],
   "typescript.tsdk": "node_modules/typescript/lib"
 }

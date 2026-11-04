@@ -11,13 +11,7 @@ import {
   ParseUUIDPipe,
   Query,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 
 import { UsersService } from './users.service';
@@ -29,10 +23,7 @@ import {
 } from './dto/user.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guards';
 import { RolesGuard } from '../common/guards/roles.guard';
-import {
-  CurrentUser,
-  AuthenticatedUser,
-} from '../common/decorators/current-user.decorator';
+import { CurrentUser, AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('users')

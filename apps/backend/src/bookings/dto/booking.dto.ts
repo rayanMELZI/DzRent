@@ -1,5 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsISO8601, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateBookingDto {
   @ApiProperty() @IsUUID() vehicleId: string;
@@ -8,7 +18,12 @@ export class CreateBookingDto {
   @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) @Max(58) pickupWilayaId?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(500) pickupAddress?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(500) returnAddress?: string;
-  @ApiPropertyOptional({ default: 0 }) @IsOptional() @IsInt() @Min(0) @Max(5) additionalDrivers?: number;
+  @ApiPropertyOptional({ default: 0 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(5)
+  additionalDrivers?: number;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() hasChildSeat?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() hasGpsScreen?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() withInsuranceWaiver?: boolean;

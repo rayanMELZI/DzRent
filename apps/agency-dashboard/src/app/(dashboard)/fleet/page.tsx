@@ -9,7 +9,12 @@ import { useMemo, useState } from 'react';
 import { useLang } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import {
-  daysUntil, STATUS_TO_UI, UI_TO_STATUS, useSetVehicleStatus, useVehicles, type ApiVehicle,
+  daysUntil,
+  STATUS_TO_UI,
+  UI_TO_STATUS,
+  useSetVehicleStatus,
+  useVehicles,
+  type ApiVehicle,
 } from '@/lib/vehicles';
 import { FLEET_STATUS, FLEET_STATUS_ORDER } from '@/lib/fleet';
 import type { VehicleFleetStatus } from '@dzrent/types';
@@ -26,8 +31,10 @@ type Filter = 'all' | VehicleFleetStatus;
 type View = 'grid' | 'list';
 
 /** Real days-to-expiry when known; falls back to the computed compliance flag. */
-const insDays = (v: ApiVehicle) => daysUntil(v.insurancePolicies[0]?.endDate) ?? (v.hasValidInsurance ? 365 : 0);
-const techDays = (v: ApiVehicle) => daysUntil(v.documents[0]?.expiresAt) ?? (v.hasValidVisite ? 365 : 0);
+const insDays = (v: ApiVehicle) =>
+  daysUntil(v.insurancePolicies[0]?.endDate) ?? (v.hasValidInsurance ? 365 : 0);
+const techDays = (v: ApiVehicle) =>
+  daysUntil(v.documents[0]?.expiresAt) ?? (v.hasValidVisite ? 365 : 0);
 
 export default function FleetScreen() {
   const { t, lang } = useLang();
@@ -45,7 +52,8 @@ export default function FleetScreen() {
     () => fleet.filter((v) => filter === 'all' || STATUS_TO_UI[v.status] === filter),
     [fleet, filter],
   );
-  const countOf = (s: VehicleFleetStatus) => fleet.filter((v) => STATUS_TO_UI[v.status] === s).length;
+  const countOf = (s: VehicleFleetStatus) =>
+    fleet.filter((v) => STATUS_TO_UI[v.status] === s).length;
 
   const insLabel = lang === 'ar' ? 'تأمين' : 'Assur.';
   const techLabel = lang === 'ar' ? 'فحص' : 'Visite';
@@ -76,7 +84,9 @@ export default function FleetScreen() {
           }`}
         >
           {STATUS_TO_UI[v.status] === s && <Icon name="check" size={13} stroke="currentColor" />}
-          <span className={STATUS_TO_UI[v.status] === s ? '' : 'ps-[21px]'}>{t(FLEET_STATUS[s].labelKey)}</span>
+          <span className={STATUS_TO_UI[v.status] === s ? '' : 'ps-[21px]'}>
+            {t(FLEET_STATUS[s].labelKey)}
+          </span>
         </button>
       ))}
     </div>
@@ -165,7 +175,9 @@ export default function FleetScreen() {
                 <div className="p-3.5">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="dz-h3 truncate text-[14.5px] text-ink">{name}</span>
-                    <span className="dz-mono shrink-0 text-[11.5px] text-ink-4">{v.licensePlate}</span>
+                    <span className="dz-mono shrink-0 text-[11.5px] text-ink-4">
+                      {v.licensePlate}
+                    </span>
                   </div>
                   <div className="dz-xs mt-0.5 text-ink-4">
                     {lang === 'ar' ? v.category.nameAr : v.category.nameFr} · {v.year}
@@ -194,7 +206,12 @@ export default function FleetScreen() {
                   i === rows.length - 1 ? '' : 'border-b border-line-3'
                 }`}
               >
-                <Placeholder label={name} height={42} radius={8} style={{ width: 64, flexShrink: 0 }} />
+                <Placeholder
+                  label={name}
+                  height={42}
+                  radius={8}
+                  style={{ width: 64, flexShrink: 0 }}
+                />
                 <div className="w-40">
                   <div className="dz-h3 text-[14px] text-ink">{name}</div>
                   <div className="dz-xs text-ink-4">
@@ -211,7 +228,12 @@ export default function FleetScreen() {
                     className="inline-flex items-center gap-1"
                   >
                     <StatusBadge status={st.badge} label={t(st.labelKey)} />
-                    <Icon name="chevron" size={13} stroke="#8A8F88" style={{ transform: 'rotate(90deg)' }} />
+                    <Icon
+                      name="chevron"
+                      size={13}
+                      stroke="#8A8F88"
+                      style={{ transform: 'rotate(90deg)' }}
+                    />
                   </button>
                   {menuFor === v.id && statusMenu(v)}
                 </div>

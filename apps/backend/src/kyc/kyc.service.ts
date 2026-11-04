@@ -28,7 +28,10 @@ export class KycService {
 
   // ── Step 1: presigned upload URL ───────────────────────────────────────────
   async createUploadIntent(userId: string, dto: KycUploadIntentDto) {
-    const fileKey = this.storage.buildKey(`kyc/${userId}/${dto.documentType.toLowerCase()}`, dto.mimeType);
+    const fileKey = this.storage.buildKey(
+      `kyc/${userId}/${dto.documentType.toLowerCase()}`,
+      dto.mimeType,
+    );
     const uploadUrl = await this.storage.presignUpload('kyc', fileKey, dto.mimeType);
     return { fileKey, uploadUrl, expiresInSeconds: 300, maxBytes: KYC_MAX_BYTES };
   }
@@ -39,7 +42,11 @@ export class KycService {
     if (!dto.fileKey.startsWith(`kyc/${userId}/`)) {
       throw new ForbiddenException('fileKey does not belong to your upload namespace.');
     }
-    const { sizeBytes, mimeType } = await this.storage.verifyObject('kyc', dto.fileKey, KYC_MAX_BYTES);
+    const { sizeBytes, mimeType } = await this.storage.verifyObject(
+      'kyc',
+      dto.fileKey,
+      KYC_MAX_BYTES,
+    );
     const fileHash = await this.storage.sha256Of('kyc', dto.fileKey); // integrity (schema field)
 
     const latest = await this.prisma.kycDocument.findFirst({
@@ -66,8 +73,11 @@ export class KycService {
     });
 
     await this.audit.log({
-      userId, entityType: 'KycDocument', entityId: doc.id,
-      action: 'DOCUMENT_SUBMITTED', newValue: { documentType: dto.documentType, version: doc.version },
+      userId,
+      entityType: 'KycDocument',
+      entityId: doc.id,
+      action: 'DOCUMENT_SUBMITTED',
+      newValue: { documentType: dto.documentType, version: doc.version },
     });
     return { id: doc.id, documentType: doc.documentType, version: doc.version, status: doc.status };
   }
@@ -78,13 +88,19 @@ export class KycService {
       where: { userId },
       orderBy: { version: 'desc' },
       select: {
-        id: true, documentType: true, status: true, version: true,
-        expiresAt: true, rejectionReason: true, createdAt: true,
+        id: true,
+        documentType: true,
+        status: true,
+        version: true,
+        expiresAt: true,
+        rejectionReason: true,
+        createdAt: true,
       },
     });
     // latest version per type
     const latestByType = new Map<string, (typeof docs)[number]>();
-    for (const d of docs) if (!latestByType.has(d.documentType)) latestByType.set(d.documentType, d);
+    for (const d of docs)
+      if (!latestByType.has(d.documentType)) latestByType.set(d.documentType, d);
 
     const now = new Date();
     const summary = REQUIRED_FOR_BOOKING.map((type) => {
@@ -92,14 +108,19 @@ export class KycService {
       const expired = doc?.expiresAt != null && doc.expiresAt < now;
       return {
         documentType: type,
-        status: doc ? (expired && doc.status === KycStatus.APPROVED ? KycStatus.EXPIRED : doc.status) : KycStatus.NOT_SUBMITTED,
+        status: doc
+          ? expired && doc.status === KycStatus.APPROVED
+            ? KycStatus.EXPIRED
+            : doc.status
+          : KycStatus.NOT_SUBMITTED,
         version: doc?.version ?? 0,
         expiresAt: doc?.expiresAt ?? null,
         rejectionReason: doc?.status === KycStatus.REJECTED ? doc.rejectionReason : null,
       };
     });
-    const optional = [...latestByType.values()]
-      .filter((d) => !REQUIRED_FOR_BOOKING.includes(d.documentType as KycDocumentType));
+    const optional = [...latestByType.values()].filter(
+      (d) => !REQUIRED_FOR_BOOKING.includes(d.documentType as KycDocumentType),
+    );
 
     return {
       required: summary,
@@ -115,7 +136,9 @@ export class KycService {
   }
 
   /** Returns the approval timestamp of the latest APPROVED CIN (booking snapshot). */
-  async latestCinApproval(userId: string): Promise<{ reviewedAt: Date | null; reviewedBy: string | null }> {
+  async latestCinApproval(
+    userId: string,
+  ): Promise<{ reviewedAt: Date | null; reviewedBy: string | null }> {
     const cin = await this.prisma.kycDocument.findFirst({
       where: { userId, documentType: KycDocumentType.CIN, status: KycStatus.APPROVED },
       orderBy: { version: 'desc' },
@@ -127,10 +150,14 @@ export class KycService {
   /** Short-lived signed URL so the admin reviewer can view the document. */
   async getReviewDownloadUrl(documentId: string) {
     const doc = await this.prisma.kycDocument.findUnique({
-      where: { id: documentId }, select: { fileKey: true },
+      where: { id: documentId },
+      select: { fileKey: true },
     });
     if (!doc) throw new NotFoundException('Document not found.');
-    return { url: await this.storage.presignDownload('kyc', doc.fileKey, 300), expiresInSeconds: 300 };
+    return {
+      url: await this.storage.presignDownload('kyc', doc.fileKey, 300),
+      expiresInSeconds: 300,
+    };
   }
 
   // ── Admin: review queue ─────────────────────────────────────────────────────
@@ -139,11 +166,20 @@ export class KycService {
       this.prisma.kycDocument.findMany({
         where: { status: KycStatus.PENDING_REVIEW },
         orderBy: { createdAt: 'asc' }, // SLA: oldest first (kyc_review_sla_hours)
-        skip: (page - 1) * limit, take: limit,
+        skip: (page - 1) * limit,
+        take: limit,
         select: {
-          id: true, documentType: true, version: true, createdAt: true,
-          documentNumber: true, issuedAt: true, expiresAt: true, issuingWilaya: true,
-          user: { select: { id: true, phone: true, firstName: true, lastName: true, riskScore: true } },
+          id: true,
+          documentType: true,
+          version: true,
+          createdAt: true,
+          documentNumber: true,
+          issuedAt: true,
+          expiresAt: true,
+          issuingWilaya: true,
+          user: {
+            select: { id: true, phone: true, firstName: true, lastName: true, riskScore: true },
+          },
         },
       }),
       this.prisma.kycDocument.count({ where: { status: KycStatus.PENDING_REVIEW } }),
@@ -159,7 +195,10 @@ export class KycService {
     });
     if (!doc) throw new NotFoundException('Document not found.');
     if (doc.status !== KycStatus.PENDING_REVIEW) {
-      throw new BusinessRuleException('INVALID_KYC_STATE', `Document is ${doc.status}, not PENDING_REVIEW.`);
+      throw new BusinessRuleException(
+        'INVALID_KYC_STATE',
+        `Document is ${doc.status}, not PENDING_REVIEW.`,
+      );
     }
 
     await this.prisma.kycDocument.update({
@@ -180,18 +219,34 @@ export class KycService {
       if (duplicate) {
         // Same CIN on two accounts = identity fraud pattern — flag BOTH.
         const desc = `CIN ${doc.documentNumber} appears on multiple accounts.`;
-        await this.fraud.raiseSignal({ userId: doc.userId, signalType: FraudSignalType.CIN_DUPLICATE, severity: 5, description: desc });
-        await this.fraud.raiseSignal({ userId: duplicate.id, signalType: FraudSignalType.CIN_DUPLICATE, severity: 5, description: desc });
+        await this.fraud.raiseSignal({
+          userId: doc.userId,
+          signalType: FraudSignalType.CIN_DUPLICATE,
+          severity: 5,
+          description: desc,
+        });
+        await this.fraud.raiseSignal({
+          userId: duplicate.id,
+          signalType: FraudSignalType.CIN_DUPLICATE,
+          severity: 5,
+          description: desc,
+        });
       }
     }
 
     await this.audit.log({
-      userId: adminId, entityType: 'KycDocument', entityId: documentId,
-      action: 'DOCUMENT_APPROVED', newValue: { documentType: doc.documentType },
+      userId: adminId,
+      entityType: 'KycDocument',
+      entityId: documentId,
+      action: 'DOCUMENT_APPROVED',
+      newValue: { documentType: doc.documentType },
     });
     await this.notifications.sendSms({
-      userId: doc.user.id, phone: doc.user.phone, locale: doc.user.locale as 'fr' | 'ar',
-      templateId: 'KYC_APPROVED', vars: { docType: doc.documentType },
+      userId: doc.user.id,
+      phone: doc.user.phone,
+      locale: doc.user.locale as 'fr' | 'ar',
+      templateId: 'KYC_APPROVED',
+      vars: { docType: doc.documentType },
     });
     return { id: documentId, status: KycStatus.APPROVED };
   }
@@ -204,20 +259,34 @@ export class KycService {
     });
     if (!doc) throw new NotFoundException('Document not found.');
     if (doc.status !== KycStatus.PENDING_REVIEW) {
-      throw new BusinessRuleException('INVALID_KYC_STATE', `Document is ${doc.status}, not PENDING_REVIEW.`);
+      throw new BusinessRuleException(
+        'INVALID_KYC_STATE',
+        `Document is ${doc.status}, not PENDING_REVIEW.`,
+      );
     }
 
     await this.prisma.kycDocument.update({
       where: { id: documentId },
-      data: { status: KycStatus.REJECTED, reviewedBy: adminId, reviewedAt: new Date(), rejectionReason },
+      data: {
+        status: KycStatus.REJECTED,
+        reviewedBy: adminId,
+        reviewedAt: new Date(),
+        rejectionReason,
+      },
     });
     await this.audit.log({
-      userId: adminId, entityType: 'KycDocument', entityId: documentId,
-      action: 'DOCUMENT_REJECTED', newValue: { rejectionReason },
+      userId: adminId,
+      entityType: 'KycDocument',
+      entityId: documentId,
+      action: 'DOCUMENT_REJECTED',
+      newValue: { rejectionReason },
     });
     await this.notifications.sendSms({
-      userId: doc.user.id, phone: doc.user.phone, locale: doc.user.locale as 'fr' | 'ar',
-      templateId: 'KYC_REJECTED', vars: { docType: doc.documentType, reason: rejectionReason },
+      userId: doc.user.id,
+      phone: doc.user.phone,
+      locale: doc.user.locale as 'fr' | 'ar',
+      templateId: 'KYC_REJECTED',
+      vars: { docType: doc.documentType, reason: rejectionReason },
     });
     return { id: documentId, status: KycStatus.REJECTED };
   }

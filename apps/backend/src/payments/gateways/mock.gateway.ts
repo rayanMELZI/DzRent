@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { GatewayConfirmResult, GatewayInitResult, IPaymentGateway } from './payment-gateway.interface';
+import {
+  GatewayConfirmResult,
+  GatewayInitResult,
+  IPaymentGateway,
+} from './payment-gateway.interface';
 
 /**
  * MockGateway — default in non-production. Simulates a SATIM-style flow without
@@ -11,9 +15,16 @@ import { GatewayConfirmResult, GatewayInitResult, IPaymentGateway } from './paym
 export class MockGateway implements IPaymentGateway {
   private readonly logger = new Logger(MockGateway.name);
 
-  async initiate(p: { orderRef: string; amountDA: number; intent: 'capture' | 'authorize'; returnUrl: string }): Promise<GatewayInitResult> {
+  async initiate(p: {
+    orderRef: string;
+    amountDA: number;
+    intent: 'capture' | 'authorize';
+    returnUrl: string;
+  }): Promise<GatewayInitResult> {
     const externalRef = `MOCK-${randomUUID()}`;
-    this.logger.warn(`[MOCK PAY] ${p.intent} ${p.amountDA} DA order=${p.orderRef} ref=${externalRef}`);
+    this.logger.warn(
+      `[MOCK PAY] ${p.intent} ${p.amountDA} DA order=${p.orderRef} ref=${externalRef}`,
+    );
     return { externalRef, paymentUrl: `${p.returnUrl}?mockRef=${externalRef}&status=success` };
   }
   async confirm(externalRef: string): Promise<GatewayConfirmResult> {

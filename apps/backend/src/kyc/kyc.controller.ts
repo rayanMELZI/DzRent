@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 
@@ -36,28 +45,32 @@ export class KycController {
 
   // ── Admin review workflow ───────────────────────────────────────────────
   @Get('review-queue')
-  @UseGuards(RolesGuard) @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: '[ADMIN] Pending KYC documents, oldest first' })
   async queue(@Query('page') page = '1', @Query('limit') limit = '20') {
     return { success: true, ...(await this.kyc.reviewQueue(Number(page), Number(limit))) };
   }
 
   @Get(':id/download-url')
-  @UseGuards(RolesGuard) @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: '[ADMIN] 5-minute signed URL to view a document' })
   async downloadUrl(@Param('id', ParseUUIDPipe) id: string) {
     return { success: true, data: await this.kyc.getReviewDownloadUrl(id) };
   }
 
   @Post(':id/approve')
-  @UseGuards(RolesGuard) @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: '[ADMIN] Approve a KYC document' })
   async approve(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') adminId: string) {
     return { success: true, data: await this.kyc.approve(id, adminId) };
   }
 
   @Post(':id/reject')
-  @UseGuards(RolesGuard) @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: '[ADMIN] Reject a KYC document with a reason' })
   async reject(
     @Param('id', ParseUUIDPipe) id: string,

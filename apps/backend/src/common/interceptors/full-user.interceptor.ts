@@ -19,31 +19,33 @@ import { AuthenticatedUser } from '../decorators/current-user.decorator';
  * a separate KycService call.
  */
 export const FULL_USER_SELECT = {
-  id:              true,
-  phone:           true,
-  email:           true,
-  firstName:       true,
-  lastName:        true,
-  role:            true,
-  status:          true,
-  locale:          true,
-  avatarUrl:       true,
-  nationalIdNumber:true,
-  riskScore:       true,
-  lastLoginAt:     true,
-  createdAt:       true,
-  updatedAt:       true,
+  id: true,
+  phone: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  role: true,
+  status: true,
+  locale: true,
+  avatarUrl: true,
+  nationalIdNumber: true,
+  riskScore: true,
+  lastLoginAt: true,
+  createdAt: true,
+  updatedAt: true,
   kycDocuments: {
     where: {
-      status: { in: [KycStatus.PENDING_REVIEW, KycStatus.APPROVED, KycStatus.REJECTED, KycStatus.EXPIRED] },
+      status: {
+        in: [KycStatus.PENDING_REVIEW, KycStatus.APPROVED, KycStatus.REJECTED, KycStatus.EXPIRED],
+      },
     },
     select: {
-      id:           true,
+      id: true,
       documentType: true,
-      status:       true,
-      version:      true,
-      expiresAt:    true,
-      reviewedAt:   true,
+      status: true,
+      version: true,
+      expiresAt: true,
+      reviewedAt: true,
     },
     orderBy: { version: 'desc' },
   },
@@ -93,10 +95,7 @@ export type FullDbUser = Prisma.UserGetPayload<{ select: typeof FULL_USER_SELECT
 export class FullUserInterceptor implements NestInterceptor {
   constructor(private readonly prisma: PrismaService) {}
 
-  async intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<unknown>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
     const request = context.switchToHttp().getRequest<Request & { dbUser?: FullDbUser }>();
     const jwtUser = request.user as AuthenticatedUser | undefined;
 

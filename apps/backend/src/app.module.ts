@@ -41,13 +41,13 @@ import { HealthModule } from './health/health.module';
       }),
       inject: [ConfigService],
     }),
-    SmsModule,            // @Global — SMS_SERVICE token
-    StorageModule,        // @Global — S3/MinIO presigned URLs
-    AuditModule,          // @Global — append-only audit trail helper
-    NotificationsModule,  // @Global — SMS templates fr/ar + NotificationLog
+    SmsModule, // @Global — SMS_SERVICE token
+    StorageModule, // @Global — S3/MinIO presigned URLs
+    AuditModule, // @Global — append-only audit trail helper
+    NotificationsModule, // @Global — SMS templates fr/ar + NotificationLog
     PlatformConfigModule, // @Global — cached PlatformConfig reads
-    FraudModule,          // @Global — signals + riskScore recompute
-    PricingModule,        // @Global — rate resolution + quote engine
+    FraudModule, // @Global — signals + riskScore recompute
+    PricingModule, // @Global — rate resolution + quote engine
 
     // ── Rate limiting ─────────────────────────────────────────────────────
     // AUDIT FIX B4: ThrottlerModule alone does nothing — the guard must be
@@ -58,15 +58,15 @@ import { HealthModule } from './health/health.module';
     // ── Feature modules ───────────────────────────────────────────────────
     AuthModule,
     UsersModule,
-    KycModule,        // Sprint 2.2
-    AgenciesModule,   // Sprint 2.3
-    VehiclesModule,   // Sprint 3
-    BookingsModule,   // Sprint 4
-    ContractsModule,  // Sprint 3/4
-    PaymentsModule,   // Sprint 5
-    BlacklistModule,  // Sprint 5
-    GpsModule,        // Sprint 5
-    AdminModule,      // Sprint 5
+    KycModule, // Sprint 2.2
+    AgenciesModule, // Sprint 2.3
+    VehiclesModule, // Sprint 3
+    BookingsModule, // Sprint 4
+    ContractsModule, // Sprint 3/4
+    PaymentsModule, // Sprint 5
+    BlacklistModule, // Sprint 5
+    GpsModule, // Sprint 5
+    AdminModule, // Sprint 5
     HealthModule,
   ],
   providers: [

@@ -145,7 +145,10 @@ export function RequestDetail({ req }: { req: Request }) {
             <div className="dz-label mb-2 text-status-refused-ink">{t('req_risk')}</div>
             <div className="flex flex-col gap-1.5">
               {c.riskFlags.map((f, i) => (
-                <div key={i} className="flex items-center gap-2 text-[13px] text-status-refused-ink">
+                <div
+                  key={i}
+                  className="flex items-center gap-2 text-[13px] text-status-refused-ink"
+                >
                   <Icon name="alert" size={15} stroke="#9C352B" />
                   {f[lang]}
                 </div>
@@ -162,9 +165,16 @@ export function RequestDetail({ req }: { req: Request }) {
             const badge = KYC_BADGE[st];
             return (
               <div key={dc.id} className="flex gap-2.5 rounded-r2 bg-sand p-2.5">
-                <Placeholder label={`scan · ${dc.id}`} height={56} radius={9} style={{ width: 76, flexShrink: 0 }} />
+                <Placeholder
+                  label={`scan · ${dc.id}`}
+                  height={56}
+                  radius={9}
+                  style={{ width: 76, flexShrink: 0 }}
+                />
                 <div className="flex min-w-0 flex-1 flex-col justify-between">
-                  <div className="text-[12.5px] font-semibold leading-tight text-ink">{dc[lang]}</div>
+                  <div className="text-[12.5px] font-semibold leading-tight text-ink">
+                    {dc[lang]}
+                  </div>
                   <StatusBadge status={badge.token} label={t(badge.labelKey)} />
                 </div>
               </div>
@@ -175,7 +185,12 @@ export function RequestDetail({ req }: { req: Request }) {
         {/* booking period */}
         <h3 className="dz-h3 mb-3 mt-6 text-ink">{t('req_period')}</h3>
         <div className="flex gap-3.5 rounded-r2 bg-sand p-3.5">
-          <Placeholder label={`photo · ${carName}`} height={64} radius={10} style={{ width: 96, flexShrink: 0 }} />
+          <Placeholder
+            label={`photo · ${carName}`}
+            height={64}
+            radius={10}
+            style={{ width: 96, flexShrink: 0 }}
+          />
           <div className="flex-1">
             <div className="dz-h3 text-[15px] text-ink">{carName}</div>
             <div className="dz-sm dz-mono mt-1.5 text-ink-2" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
@@ -185,13 +200,18 @@ export function RequestDetail({ req }: { req: Request }) {
               <div>
                 <div className="dz-xs text-ink-4">{t('co_total')}</div>
                 <div className="dz-mono text-[15px] font-semibold text-ink">
-                  {formatDZD(req.total)} <span className="text-[10px] text-ink-4">{t('common_dzd')}</span>
+                  {formatDZD(req.total)}{' '}
+                  <span className="text-[10px] text-ink-4">{t('common_dzd')}</span>
                 </div>
               </div>
-              <div className="border-deposit-line ps-4" style={{ borderInlineStartWidth: 1.5, borderInlineStartStyle: 'dashed' }}>
+              <div
+                className="border-deposit-line ps-4"
+                style={{ borderInlineStartWidth: 1.5, borderInlineStartStyle: 'dashed' }}
+              >
                 <div className="dz-xs text-deposit-ink">{t('co_deposit')}</div>
                 <div className="dz-mono text-[15px] font-semibold text-deposit-ink">
-                  {formatDZD(req.deposit)} <span className="text-[10px] opacity-70">{t('common_dzd')}</span>
+                  {formatDZD(req.deposit)}{' '}
+                  <span className="text-[10px] opacity-70">{t('common_dzd')}</span>
                 </div>
               </div>
             </div>

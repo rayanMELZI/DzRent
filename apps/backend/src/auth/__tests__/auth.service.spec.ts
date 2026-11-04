@@ -29,18 +29,18 @@ import { UserStatus } from '@prisma/client';
 const mockPrisma = {
   user: {
     findUnique: jest.fn(),
-    upsert:     jest.fn(),
-    update:     jest.fn(),
+    upsert: jest.fn(),
+    update: jest.fn(),
   },
   notDeleted: jest.fn().mockReturnValue({ deletedAt: null }),
 };
 
 const mockRedis = {
-  ttl:    jest.fn(),
-  setex:  jest.fn(),
-  get:    jest.fn(),
-  del:    jest.fn(),
-  keys:   jest.fn(),
+  ttl: jest.fn(),
+  setex: jest.fn(),
+  get: jest.fn(),
+  del: jest.fn(),
+  keys: jest.fn(),
 };
 
 const mockJwtService = {
@@ -50,9 +50,9 @@ const mockJwtService = {
 const mockConfig = {
   get: jest.fn((key: string, defaultValue?: unknown) => {
     const config: Record<string, unknown> = {
-      JWT_SECRET:           'test-secret-min-32-chars-aaaaaaaa',
-      JWT_REFRESH_SECRET:   'test-refresh-secret-min-32-bbbbbbb',
-      JWT_EXPIRES_IN:       '15m',
+      JWT_SECRET: 'test-secret-min-32-chars-aaaaaaaa',
+      JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-bbbbbbb',
+      JWT_EXPIRES_IN: '15m',
       JWT_REFRESH_EXPIRES_IN: '7d',
     };
     return config[key] ?? defaultValue;
@@ -71,16 +71,16 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: PrismaService,  useValue: mockPrisma },
-        { provide: JwtService,     useValue: mockJwtService },
-        { provide: ConfigService,  useValue: mockConfig },
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: ConfigService, useValue: mockConfig },
         { provide: getRedisConnectionToken(), useValue: mockRedis },
-        { provide: SMS_SERVICE,    useClass: MockSmsService },
+        { provide: SMS_SERVICE, useClass: MockSmsService },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    sms     = module.get<MockSmsService>(SMS_SERVICE);
+    sms = module.get<MockSmsService>(SMS_SERVICE);
 
     // Reset all mocks between tests
     jest.clearAllMocks();
@@ -93,7 +93,7 @@ describe('AuthService', () => {
     const phone = '+213551234567';
 
     it('should generate and "send" an OTP, then set the cooldown', async () => {
-      mockRedis.ttl.mockResolvedValue(-1);         // no cooldown active
+      mockRedis.ttl.mockResolvedValue(-1); // no cooldown active
       mockPrisma.user.findUnique.mockResolvedValue(null); // new user
       mockPrisma.user.upsert.mockResolvedValue({ id: 'uuid-1', phone });
       mockRedis.setex.mockResolvedValue('OK');
@@ -113,8 +113,7 @@ describe('AuthService', () => {
     it('should reject when per-phone cooldown is active', async () => {
       mockRedis.ttl.mockResolvedValue(45); // 45 s remaining
 
-      await expect(service.requestOtp({ phone }))
-        .rejects.toThrow(TooManyRequestsException);
+      await expect(service.requestOtp({ phone })).rejects.toThrow(TooManyRequestsException);
 
       expect(sms.sentOtps).toHaveLength(0);
     });
@@ -128,8 +127,7 @@ describe('AuthService', () => {
         otpExpiresAt: null,
       });
 
-      await expect(service.requestOtp({ phone }))
-        .rejects.toThrow(UnauthorizedException);
+      await expect(service.requestOtp({ phone })).rejects.toThrow(UnauthorizedException);
     });
 
     it('should NOT set cooldown when SMS delivery fails', async () => {
@@ -140,8 +138,7 @@ describe('AuthService', () => {
       // Simulate Twilio down
       sms.simulateFailure = true;
 
-      await expect(service.requestOtp({ phone }))
-        .rejects.toThrow();
+      await expect(service.requestOtp({ phone })).rejects.toThrow();
 
       // Cooldown must NOT have been set (user should be able to retry immediately)
       expect(mockRedis.setex).not.toHaveBeenCalled();
@@ -159,31 +156,31 @@ describe('AuthService', () => {
         otpExpiresAt: null,
       });
 
-      await expect(
-        service.verifyOtp({ phone, otp: '123456' }),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.verifyOtp({ phone, otp: '123456' })).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should lock account after OTP_MAX_ATTEMPTS failures', async () => {
       const futureDate = new Date(Date.now() + 600_000);
 
       mockPrisma.user.findUnique.mockResolvedValue({
-        id:          'uuid-1',
-        status:      UserStatus.ACTIVE,
-        otpHash:     '$2b$10$invalidhash',
+        id: 'uuid-1',
+        status: UserStatus.ACTIVE,
+        otpHash: '$2b$10$invalidhash',
         otpExpiresAt: futureDate,
         otpAttempts: 4, // one more = 5 = lockout
-        firstName:   'Mohamed',
-        lastName:    'Bensalem',
-        role:        'CLIENT',
-        locale:      'fr',
+        firstName: 'Mohamed',
+        lastName: 'Bensalem',
+        role: 'CLIENT',
+        locale: 'fr',
       });
 
       mockPrisma.user.update.mockResolvedValue({});
 
-      await expect(
-        service.verifyOtp({ phone, otp: '000000' }),
-      ).rejects.toThrow(TooManyRequestsException);
+      await expect(service.verifyOtp({ phone, otp: '000000' })).rejects.toThrow(
+        TooManyRequestsException,
+      );
 
       expect(mockPrisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -201,9 +198,7 @@ describe('AuthService', () => {
 
       const result = await service.logout('user-uuid', 'jti-uuid');
 
-      expect(mockRedis.del).toHaveBeenCalledWith(
-        expect.stringContaining('user-uuid'),
-      );
+      expect(mockRedis.del).toHaveBeenCalledWith(expect.stringContaining('user-uuid'));
       expect(result.message).toContain('logged out');
     });
   });

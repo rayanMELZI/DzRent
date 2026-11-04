@@ -26,8 +26,19 @@ export class NotificationsService {
     const where = { userId };
     const [items, total, unread] = await Promise.all([
       this.prisma.notificationLog.findMany({
-        where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' },
-        select: { id: true, channel: true, templateId: true, payload: true, isDelivered: true, readAt: true, createdAt: true },
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          channel: true,
+          templateId: true,
+          payload: true,
+          isDelivered: true,
+          readAt: true,
+          createdAt: true,
+        },
       }),
       this.prisma.notificationLog.count({ where }),
       this.prisma.notificationLog.count({ where: { userId, readAt: null } }),
@@ -59,7 +70,9 @@ export class NotificationsService {
       const result = await this.sms.sendNotification({ to: phone, body });
       await this.prisma.notificationLog.create({
         data: {
-          userId, channel: NotificationChannel.SMS, templateId: templateKey,
+          userId,
+          channel: NotificationChannel.SMS,
+          templateId: templateKey,
           payload: { body, vars } as never,
           isDelivered: result.success,
           deliveredAt: result.success ? new Date() : null,
@@ -68,14 +81,22 @@ export class NotificationsService {
         },
       });
     } catch (e) {
-      this.logger.error(`Notification failed [${templateKey} → ${phone.slice(0, 7)}***]`, e as Error);
-      await this.prisma.notificationLog.create({
-        data: {
-          userId, channel: NotificationChannel.SMS, templateId: templateKey,
-          payload: { body, vars } as never, isDelivered: false,
-          failureReason: (e as Error).message,
-        },
-      }).catch(() => undefined);
+      this.logger.error(
+        `Notification failed [${templateKey} → ${phone.slice(0, 7)}***]`,
+        e as Error,
+      );
+      await this.prisma.notificationLog
+        .create({
+          data: {
+            userId,
+            channel: NotificationChannel.SMS,
+            templateId: templateKey,
+            payload: { body, vars } as never,
+            isDelivered: false,
+            failureReason: (e as Error).message,
+          },
+        })
+        .catch(() => undefined);
     }
   }
 }

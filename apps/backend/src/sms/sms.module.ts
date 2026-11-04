@@ -56,9 +56,7 @@ import { ConsoleSmsService } from './console-sms.service';
 
         // Detect placeholder / test credentials by common sentinel patterns
         const isPlaceholderSid =
-          !sid ||
-          sid === 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' ||
-          sid.startsWith('ACtest');
+          !sid || sid === 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' || sid.startsWith('ACtest');
 
         if (env === 'production' && !isPlaceholderSid) {
           new Logger('SmsModule').log('📱 SMS provider: Twilio [production]');

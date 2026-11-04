@@ -6,7 +6,8 @@
 import { status as statusTokens } from '@dzrent/tokens';
 
 export function ComplianceDot({ days, label }: { days: number; label: string }) {
-  const tone = days <= 10 ? statusTokens.refused : days <= 30 ? statusTokens.expiring : statusTokens.approved;
+  const tone =
+    days <= 10 ? statusTokens.refused : days <= 30 ? statusTokens.expiring : statusTokens.approved;
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[11.5px] font-medium"

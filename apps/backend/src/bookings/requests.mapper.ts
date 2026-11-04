@@ -47,7 +47,10 @@ const KYC_DOC_IDS: Partial<Record<KycDocumentType, UiKycDocId>> = {
   [KycDocumentType.PROOF_OF_ADDRESS]: 'domicile',
 };
 
-function uiKycStatus(doc: { status: KycStatus; expiresAt: Date | null } | undefined, now: Date): UiKycStatus {
+function uiKycStatus(
+  doc: { status: KycStatus; expiresAt: Date | null } | undefined,
+  now: Date,
+): UiKycStatus {
   if (!doc) return 'none';
   // An APPROVED document past its validity date is no longer trustworthy.
   if (doc.status === KycStatus.APPROVED) {

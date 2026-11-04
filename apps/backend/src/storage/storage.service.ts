@@ -1,7 +1,11 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-  S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand,
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createHash, randomUUID } from 'crypto';
@@ -31,15 +35,19 @@ export class StorageService {
       forcePathStyle: true, // required for MinIO
     });
     this.buckets = {
-      kyc:       config.get<string>('S3_BUCKET_KYC', 'dzrent-kyc'),
-      vehicles:  config.get<string>('S3_BUCKET_VEHICLES', 'dzrent-vehicles'),
+      kyc: config.get<string>('S3_BUCKET_KYC', 'dzrent-kyc'),
+      vehicles: config.get<string>('S3_BUCKET_VEHICLES', 'dzrent-vehicles'),
       contracts: config.get<string>('S3_BUCKET_CONTRACTS', 'dzrent-contracts'),
     };
   }
 
   /** Collision-free object key: <prefix>/<uuid>.<ext> */
   buildKey(prefix: string, mimeType: string): string {
-    const map: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'application/pdf': 'pdf' };
+    const map: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'application/pdf': 'pdf',
+    };
     const ext = map[mimeType] ?? 'bin';
     return `${prefix}/${randomUUID()}.${ext}`;
   }
@@ -47,7 +55,9 @@ export class StorageService {
   /** Presigned PUT — client uploads directly to storage (5 min validity). */
   async presignUpload(bucket: BucketKind, key: string, mimeType: string): Promise<string> {
     const cmd = new PutObjectCommand({
-      Bucket: this.buckets[bucket], Key: key, ContentType: mimeType,
+      Bucket: this.buckets[bucket],
+      Key: key,
+      ContentType: mimeType,
       ServerSideEncryption: 'AES256',
     });
     return getSignedUrl(this.s3, cmd, { expiresIn: 300 });
@@ -60,14 +70,22 @@ export class StorageService {
   }
 
   /** Verifies the object exists post-upload; returns size + mime. */
-  async verifyObject(bucket: BucketKind, key: string, maxBytes: number): Promise<{ sizeBytes: number; mimeType: string }> {
+  async verifyObject(
+    bucket: BucketKind,
+    key: string,
+    maxBytes: number,
+  ): Promise<{ sizeBytes: number; mimeType: string }> {
     try {
-      const head = await this.s3.send(new HeadObjectCommand({ Bucket: this.buckets[bucket], Key: key }));
+      const head = await this.s3.send(
+        new HeadObjectCommand({ Bucket: this.buckets[bucket], Key: key }),
+      );
       const sizeBytes = head.ContentLength ?? 0;
       if (sizeBytes === 0) throw new BadRequestException('Uploaded file is empty.');
       if (sizeBytes > maxBytes) {
         await this.delete(bucket, key);
-        throw new BadRequestException(`File exceeds the ${Math.floor(maxBytes / 1_048_576)} MB limit.`);
+        throw new BadRequestException(
+          `File exceeds the ${Math.floor(maxBytes / 1_048_576)} MB limit.`,
+        );
       }
       return { sizeBytes, mimeType: head.ContentType ?? 'application/octet-stream' };
     } catch (e) {
@@ -78,7 +96,9 @@ export class StorageService {
 
   /** Streams the object and returns its SHA-256 hex digest (integrity field). */
   async sha256Of(bucket: BucketKind, key: string): Promise<string> {
-    const res = await this.s3.send(new GetObjectCommand({ Bucket: this.buckets[bucket], Key: key }));
+    const res = await this.s3.send(
+      new GetObjectCommand({ Bucket: this.buckets[bucket], Key: key }),
+    );
     const hash = createHash('sha256');
     for await (const chunk of res.Body as Readable) hash.update(chunk as Buffer);
     return hash.digest('hex');
@@ -86,10 +106,15 @@ export class StorageService {
 
   /** Uploads a server-generated buffer (contract PDFs). */
   async putBuffer(bucket: BucketKind, key: string, body: Buffer, mimeType: string): Promise<void> {
-    await this.s3.send(new PutObjectCommand({
-      Bucket: this.buckets[bucket], Key: key, Body: body, ContentType: mimeType,
-      ServerSideEncryption: 'AES256',
-    }));
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.buckets[bucket],
+        Key: key,
+        Body: body,
+        ContentType: mimeType,
+        ServerSideEncryption: 'AES256',
+      }),
+    );
   }
 
   async delete(bucket: BucketKind, key: string): Promise<void> {

@@ -29,8 +29,7 @@ export function BlacklistModal({ onClose, onAdded }: { onClose: () => void; onAd
       { phone: phone.trim(), reason, description: description.trim() },
       {
         onSuccess: onAdded,
-        onError: (err) =>
-          setError(err instanceof ApiError ? err.message : t('common_save_error')),
+        onError: (err) => setError(err instanceof ApiError ? err.message : t('common_save_error')),
       },
     );
   };
@@ -104,10 +103,21 @@ export function BlacklistModal({ onClose, onAdded }: { onClose: () => void; onAd
         </div>
 
         <div className="mt-5 flex gap-2.5">
-          <Button variant="ghost" full onClick={onClose} className="shadow-[inset_0_0_0_1px_#DDD7CA]">
+          <Button
+            variant="ghost"
+            full
+            onClick={onClose}
+            className="shadow-[inset_0_0_0_1px_#DDD7CA]"
+          >
             {t('common_close')}
           </Button>
-          <Button variant="dark" full icon="plus" onClick={submit} disabled={!canSubmit || report.isPending}>
+          <Button
+            variant="dark"
+            full
+            icon="plus"
+            onClick={submit}
+            disabled={!canSubmit || report.isPending}
+          >
             {t('bl_add')}
           </Button>
         </div>

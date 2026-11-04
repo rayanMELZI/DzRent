@@ -27,10 +27,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     });
   }
 
-  validate(
-    request: Request,
-    payload: JwtRefreshPayload,
-  ): JwtRefreshPayload & { rawToken: string } {
+  validate(request: Request, payload: JwtRefreshPayload): JwtRefreshPayload & { rawToken: string } {
     if (payload.type !== 'refresh') {
       throw new UnauthorizedException('Invalid token type.');
     }

@@ -74,14 +74,14 @@ To run a single app: `pnpm --filter @dzrent/agency-dashboard dev`.
 
 ## Common scripts (root)
 
-| Script | Does |
-|---|---|
-| `pnpm dev` | Run every app's dev server (Turbo) |
-| `pnpm build` | Build every app and package |
-| `pnpm typecheck` | `tsc --noEmit` across the workspace |
-| `pnpm lint` | Lint every package |
-| `pnpm format` | Prettier write across the repo |
-| `pnpm --filter <name> <script>` | Target one workspace package |
+| Script                          | Does                                |
+| ------------------------------- | ----------------------------------- |
+| `pnpm dev`                      | Run every app's dev server (Turbo)  |
+| `pnpm build`                    | Build every app and package         |
+| `pnpm typecheck`                | `tsc --noEmit` across the workspace |
+| `pnpm lint`                     | Lint every package                  |
+| `pnpm format`                   | Prettier write across the repo      |
+| `pnpm --filter <name> <script>` | Target one workspace package        |
 
 Workspace package names: `@dzrent/backend`, `@dzrent/agency-dashboard`,
 `@dzrent/tokens`, `@dzrent/i18n`, `@dzrent/types`.
@@ -90,14 +90,14 @@ Workspace package names: `@dzrent/backend`, `@dzrent/agency-dashboard`,
 
 ## Documentation
 
-| Doc | Read it for |
-|---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the pieces fit, tech decisions, conventions |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | The phased plan from here to a usable MVP and beyond |
-| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Branching, commits, how to add a package or screen |
-| [apps/backend/HANDOFF.md](apps/backend/HANDOFF.md) | Backend architecture decisions & module map |
-| [apps/backend/PROJECT_STATUS.md](apps/backend/PROJECT_STATUS.md) | Backend production-readiness checklist |
-| [docs/design-handoff/](docs/design-handoff/) | The hi-fi design spec, tokens, RTL rules, screen list |
+| Doc                                                              | Read it for                                           |
+| ---------------------------------------------------------------- | ----------------------------------------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                     | How the pieces fit, tech decisions, conventions       |
+| [docs/ROADMAP.md](docs/ROADMAP.md)                               | The phased plan from here to a usable MVP and beyond  |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)                     | Branching, commits, how to add a package or screen    |
+| [apps/backend/HANDOFF.md](apps/backend/HANDOFF.md)               | Backend architecture decisions & module map           |
+| [apps/backend/PROJECT_STATUS.md](apps/backend/PROJECT_STATUS.md) | Backend production-readiness checklist                |
+| [docs/design-handoff/](docs/design-handoff/)                     | The hi-fi design spec, tokens, RTL rules, screen list |
 
 ---
 

@@ -11,7 +11,11 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
-class SetConfigDto { @IsString() key: string; value: unknown; @IsOptional() @IsString() description?: string; }
+class SetConfigDto {
+  @IsString() key: string;
+  value: unknown;
+  @IsOptional() @IsString() description?: string;
+}
 
 @ApiTags('admin')
 @ApiBearerAuth('access-token')
@@ -27,7 +31,9 @@ export class AdminController {
 
   @Get('config')
   @ApiOperation({ summary: '[ADMIN] List all platform config keys' })
-  async config() { return { success: true, data: await this.platformConfig.getAll() }; }
+  async config() {
+    return { success: true, data: await this.platformConfig.getAll() };
+  }
 
   @Put('config')
   @ApiOperation({ summary: '[ADMIN] Upsert a platform config key' })
@@ -38,9 +44,14 @@ export class AdminController {
 
   @Get('fraud-signals')
   @ApiOperation({ summary: '[ADMIN] List fraud signals (optionally unresolved only)' })
-  async signals(@Query('unresolved') unresolved = 'true', @Query('page') page = '1', @Query('limit') limit = '20') {
+  async signals(
+    @Query('unresolved') unresolved = 'true',
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+  ) {
     const where = unresolved === 'true' ? { isResolved: false } : {};
-    const take = Number(limit), skip = (Number(page) - 1) * take;
+    const take = Number(limit),
+      skip = (Number(page) - 1) * take;
     const [items, total] = await Promise.all([
       this.prisma.fraudSignal.findMany({ where, skip, take, orderBy: { createdAt: 'desc' } }),
       this.prisma.fraudSignal.count({ where }),
@@ -58,14 +69,26 @@ export class AdminController {
   @Get('stats')
   @ApiOperation({ summary: '[ADMIN] Platform-wide counters' })
   async stats() {
-    const [users, agencies, vehicles, activeBookings, pendingKyc, openDisputes] = await Promise.all([
-      this.prisma.user.count({ where: { deletedAt: null } }),
-      this.prisma.agency.count({ where: { deletedAt: null, isVerified: true } }),
-      this.prisma.vehicle.count({ where: { deletedAt: null } }),
-      this.prisma.booking.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.kycDocument.count({ where: { status: 'PENDING_REVIEW' } }),
-      this.prisma.booking.count({ where: { status: 'DISPUTED' } }),
-    ]);
-    return { success: true, data: { users, verifiedAgencies: agencies, vehicles, activeBookings, pendingKyc, openDisputes } };
+    const [users, agencies, vehicles, activeBookings, pendingKyc, openDisputes] = await Promise.all(
+      [
+        this.prisma.user.count({ where: { deletedAt: null } }),
+        this.prisma.agency.count({ where: { deletedAt: null, isVerified: true } }),
+        this.prisma.vehicle.count({ where: { deletedAt: null } }),
+        this.prisma.booking.count({ where: { status: 'ACTIVE' } }),
+        this.prisma.kycDocument.count({ where: { status: 'PENDING_REVIEW' } }),
+        this.prisma.booking.count({ where: { status: 'DISPUTED' } }),
+      ],
+    );
+    return {
+      success: true,
+      data: {
+        users,
+        verifiedAgencies: agencies,
+        vehicles,
+        activeBookings,
+        pendingKyc,
+        openDisputes,
+      },
+    };
   }
 }

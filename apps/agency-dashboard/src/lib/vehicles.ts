@@ -7,11 +7,7 @@ import { useAuth } from './auth';
 
 // ── Wire types (Prisma Vehicle + list includes) ──────────────────────────────
 export type ApiVehicleStatus =
-  | 'AVAILABLE'
-  | 'RENTED'
-  | 'MAINTENANCE'
-  | 'OUT_OF_SERVICE'
-  | 'PENDING_INSPECTION';
+  'AVAILABLE' | 'RENTED' | 'MAINTENANCE' | 'OUT_OF_SERVICE' | 'PENDING_INSPECTION';
 
 export interface ApiVehicle {
   id: string;

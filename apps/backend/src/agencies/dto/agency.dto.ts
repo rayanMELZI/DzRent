@@ -1,6 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsBoolean, IsEnum, IsIn, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min,
+  IsBoolean,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { StaffRole } from '@prisma/client';
@@ -8,15 +18,20 @@ import { normaliseAlgerianPhone } from '../../common/utils/phone.util';
 
 export class CreateAgencyDto {
   @ApiProperty({ example: 'Atlas Location Auto' })
-  @IsString() @Length(3, 200)
+  @IsString()
+  @Length(3, 200)
   name: string;
 
   @ApiPropertyOptional({ example: 'أطلس لتأجير السيارات' })
-  @IsOptional() @IsString() @MaxLength(200)
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
   nameAr?: string;
 
   @ApiProperty({ description: 'Official wilaya code 1–58', example: 16 })
-  @IsInt() @Min(1) @Max(58)
+  @IsInt()
+  @Min(1)
+  @Max(58)
   wilayaId: number;
 
   @ApiProperty({ example: '0551234567' })
@@ -26,40 +41,67 @@ export class CreateAgencyDto {
   phone: string;
 
   @ApiProperty({ example: '12 Rue Didouche Mourad' })
-  @IsString() @Length(5, 500)
+  @IsString()
+  @Length(5, 500)
   address: string;
 
   @ApiProperty({ example: 'Alger Centre' })
-  @IsString() @Length(2, 150)
+  @IsString()
+  @Length(2, 150)
   commune: string;
 
   @ApiPropertyOptional({ description: 'Registre de commerce (CNRC)' })
-  @IsOptional() @IsString() @MaxLength(50)
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
   registrationNo?: string;
 
-  @ApiPropertyOptional({ description: 'NIF — Numéro d\'Identification Fiscale' })
-  @IsOptional() @IsString() @MaxLength(30)
+  @ApiPropertyOptional({ description: "NIF — Numéro d'Identification Fiscale" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
   taxId?: string;
 
   @ApiPropertyOptional()
-  @IsOptional() @IsString() @MaxLength(2000)
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
   description?: string;
 }
 
 export class UpdateAgencyDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @Length(3, 200)
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(3, 200)
   name?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200)
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
   nameAr?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(2000)
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
   description?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(2000)
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
   descriptionAr?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @Length(5, 500)
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(5, 500)
   address?: string;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean()
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
   sharesBlacklist?: boolean;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean()
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
   acceptsBlacklist?: boolean;
 }
 
@@ -79,7 +121,8 @@ export class SubmitAgencyDocumentDto {
   documentType: string;
 
   @ApiProperty()
-  @IsString() @MaxLength(500)
+  @IsString()
+  @MaxLength(500)
   fileKey: string;
 }
 
@@ -90,10 +133,14 @@ export class AddStaffDto {
   @Matches(/^\+213[5-7]\d{8}$/, { message: 'Staff phone must be a valid Algerian mobile.' })
   phone: string;
 
-  @ApiProperty() @IsString() @Length(1, 100)
+  @ApiProperty()
+  @IsString()
+  @Length(1, 100)
   firstName: string;
 
-  @ApiProperty() @IsString() @Length(1, 100)
+  @ApiProperty()
+  @IsString()
+  @Length(1, 100)
   lastName: string;
 
   @ApiProperty({ enum: StaffRole, default: StaffRole.AGENT })
@@ -102,8 +149,12 @@ export class AddStaffDto {
 }
 
 export class VerifyAgencyDto {
-  @ApiProperty() @IsBoolean()
+  @ApiProperty()
+  @IsBoolean()
   approved: boolean;
-  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(2000)
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
   notes?: string;
 }

@@ -60,15 +60,29 @@ export default function FleetMap() {
         }}
       >
         <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
-          <path d="M0,180 Q260,120 520,260 T1000,300" stroke="rgba(255,255,255,.07)" strokeWidth="22" fill="none" />
+          <path
+            d="M0,180 Q260,120 520,260 T1000,300"
+            stroke="rgba(255,255,255,.07)"
+            strokeWidth="22"
+            fill="none"
+          />
           <path d="M180,0 L320,640" stroke="rgba(255,255,255,.06)" strokeWidth="16" fill="none" />
-          <path d="M700,0 Q760,300 640,640" stroke="rgba(255,255,255,.06)" strokeWidth="18" fill="none" />
+          <path
+            d="M700,0 Q760,300 640,640"
+            stroke="rgba(255,255,255,.06)"
+            strokeWidth="18"
+            fill="none"
+          />
         </svg>
 
         {/* geofence boundary */}
         <div
           className="absolute rounded-[26px]"
-          style={{ inset: '12% 14%', border: '2px dashed rgba(78,199,154,.5)', background: 'rgba(78,199,154,.05)' }}
+          style={{
+            inset: '12% 14%',
+            border: '2px dashed rgba(78,199,154,.5)',
+            background: 'rgba(78,199,154,.05)',
+          }}
         >
           <span
             className="dz-label absolute start-3.5 top-2.5 text-[10px]"
@@ -87,7 +101,12 @@ export default function FleetMap() {
               key={u.id}
               onClick={() => setSel(u.id)}
               className="absolute"
-              style={{ left: `${u.x}%`, top: `${u.y}%`, transform: 'translate(-50%,-50%)', zIndex: on ? 5 : 2 }}
+              style={{
+                left: `${u.x}%`,
+                top: `${u.y}%`,
+                transform: 'translate(-50%,-50%)',
+                zIndex: on ? 5 : 2,
+              }}
             >
               {u.state !== 'ok' && (
                 <span
@@ -102,10 +121,16 @@ export default function FleetMap() {
                   boxShadow: `0 2px 10px rgba(0,0,0,.4), 0 0 0 ${on ? 2 : 1.5}px ${color}`,
                 }}
               >
-                <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full" style={{ background: color }}>
+                <span
+                  className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full"
+                  style={{ background: color }}
+                >
                   <Icon name="car" size={13} stroke="#10221E" sw={2} />
                 </span>
-                <span className="dz-mono text-[11px] font-semibold" style={{ color: on ? '#1D2421' : '#fff' }}>
+                <span
+                  className="dz-mono text-[11px] font-semibold"
+                  style={{ color: on ? '#1D2421' : '#fff' }}
+                >
                   {u.plate}
                 </span>
               </span>
@@ -119,8 +144,15 @@ export default function FleetMap() {
           style={{ background: 'rgba(16,28,25,.8)', backdropFilter: 'blur(6px)' }}
         >
           {(['ok', 'speed', 'geofence'] as MapState[]).map((s) => (
-            <span key={s} className="flex items-center gap-1.5 text-[11.5px] font-medium" style={{ color: 'rgba(255,255,255,.85)' }}>
-              <span className="h-[9px] w-[9px] rounded-full" style={{ background: STATE_COLOR[s] }} />
+            <span
+              key={s}
+              className="flex items-center gap-1.5 text-[11.5px] font-medium"
+              style={{ color: 'rgba(255,255,255,.85)' }}
+            >
+              <span
+                className="h-[9px] w-[9px] rounded-full"
+                style={{ background: STATE_COLOR[s] }}
+              />
               {stateLabel(s)}
             </span>
           ))}
@@ -133,7 +165,9 @@ export default function FleetMap() {
           <div className="flex gap-3">
             <div className="flex-1">
               <div className="dz-mono text-2xl font-semibold text-ink">{MAP_UNITS.length}</div>
-              <div className="dz-xs text-ink-4">{lang === 'ar' ? 'مركبات نشطة' : 'véhicules actifs'}</div>
+              <div className="dz-xs text-ink-4">
+                {lang === 'ar' ? 'مركبات نشطة' : 'véhicules actifs'}
+              </div>
             </div>
             <div className="flex-1">
               <div className="dz-mono text-2xl font-semibold text-clay">{alerts.length}</div>
@@ -163,7 +197,9 @@ export default function FleetMap() {
                     <Icon name="car" size={18} stroke={u.state === 'ok' ? '#0F5249' : color} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] font-semibold text-ink">{car ? car[lang] : u.car}</div>
+                    <div className="text-[13.5px] font-semibold text-ink">
+                      {car ? car[lang] : u.car}
+                    </div>
                     <div className="dz-mono text-[11px] text-ink-4">{u.plate}-114-16</div>
                   </div>
                   <div className="text-end">
@@ -181,7 +217,11 @@ export default function FleetMap() {
                     className="mt-2 flex items-center gap-1.5 text-[11.5px] font-semibold"
                     style={{ color: u.state === 'speed' ? '#C0613A' : '#9C352B' }}
                   >
-                    <Icon name="alert" size={14} stroke={u.state === 'speed' ? '#C0613A' : '#9C352B'} />
+                    <Icon
+                      name="alert"
+                      size={14}
+                      stroke={u.state === 'speed' ? '#C0613A' : '#9C352B'}
+                    />
                     {stateLabel(u.state)}
                   </div>
                 )}

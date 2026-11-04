@@ -18,7 +18,9 @@ type Period = 'w' | 'm' | 'y';
 /** "2026-07" → localized short month label. */
 function monthLabel(iso: string, lang: 'fr' | 'ar'): string {
   const [y, m] = iso.split('-').map(Number);
-  return new Intl.DateTimeFormat(lang, { month: 'narrow' }).format(new Date(Date.UTC(y!, m! - 1, 1)));
+  return new Intl.DateTimeFormat(lang, { month: 'narrow' }).format(
+    new Date(Date.UTC(y!, m! - 1, 1)),
+  );
 }
 
 export default function RevenueScreen() {
@@ -62,9 +64,23 @@ export default function RevenueScreen() {
   const maxCat = Math.max(1, ...data.byCategory.map((c) => c.revenue));
 
   const kpis: { label: string; value: string; unit?: string; trendPct: number | null }[] = [
-    { label: t('kpi_revenue'), value: formatDZD(win.revenue), unit: t('common_dzd'), trendPct: win.trendPct },
-    { label: lang === 'ar' ? 'عدد الحجوزات' : 'Locations', value: String(win.rentals), trendPct: null },
-    { label: lang === 'ar' ? 'متوسط القيمة' : 'Panier moyen', value: formatDZD(win.avg), unit: t('common_dzd'), trendPct: null },
+    {
+      label: t('kpi_revenue'),
+      value: formatDZD(win.revenue),
+      unit: t('common_dzd'),
+      trendPct: win.trendPct,
+    },
+    {
+      label: lang === 'ar' ? 'عدد الحجوزات' : 'Locations',
+      value: String(win.rentals),
+      trendPct: null,
+    },
+    {
+      label: lang === 'ar' ? 'متوسط القيمة' : 'Panier moyen',
+      value: formatDZD(win.avg),
+      unit: t('common_dzd'),
+      trendPct: null,
+    },
   ];
 
   return (
@@ -112,7 +128,10 @@ export default function RevenueScreen() {
             {data.months.map((m, i) => {
               const last = i === data.months.length - 1;
               return (
-                <div key={m.month} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+                <div
+                  key={m.month}
+                  className="flex h-full flex-1 flex-col items-center justify-end gap-1"
+                >
                   <div
                     className="w-full rounded-t-[5px]"
                     title={`${m.month} · ${formatDZD(m.revenue)} DZD`}
@@ -136,7 +155,9 @@ export default function RevenueScreen() {
             {data.byCategory.map((c) => (
               <div key={c.slug}>
                 <div className="mb-1.5 flex justify-between text-[12.5px]">
-                  <span className="font-medium text-ink">{lang === 'ar' ? c.nameAr : c.nameFr}</span>
+                  <span className="font-medium text-ink">
+                    {lang === 'ar' ? c.nameAr : c.nameFr}
+                  </span>
                   <span className="dz-mono text-ink-3">{Math.round(c.revenue / 1000)}k</span>
                 </div>
                 <div className="h-[7px] rounded-full bg-sand">

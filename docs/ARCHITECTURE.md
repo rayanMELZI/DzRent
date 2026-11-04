@@ -20,11 +20,11 @@ vocabulary, same FR/AR copy, same domain shapes. Duplicating those across repos
 guarantees drift. Sharing them as versioned internal packages guarantees parity while
 each surface stays a standalone deployment on its own port:
 
-| Surface | Package | Port |
-|---|---|---|
-| API | `@dzrent/backend` | 3000 |
-| Agency dashboard | `@dzrent/agency-dashboard` | 3001 |
-| Client PWA | `@dzrent/client-pwa` _(planned)_ | 3002 |
+| Surface          | Package                          | Port |
+| ---------------- | -------------------------------- | ---- |
+| API              | `@dzrent/backend`                | 3000 |
+| Agency dashboard | `@dzrent/agency-dashboard`       | 3001 |
+| Client PWA       | `@dzrent/client-pwa` _(planned)_ | 3002 |
 
 ## 2. Shared packages
 
@@ -90,7 +90,7 @@ src/
     └── seed.ts                 typed seed data (stands in for the API for now)
 ```
 
-**Bilingual / RTL.** Arabic is a *true layout mirror*, not just right-aligned text.
+**Bilingual / RTL.** Arabic is a _true layout mirror_, not just right-aligned text.
 `LangProvider` sets `lang`/`dir` on `<html>`; layouts use logical properties
 (`ms-`, `me-`, `ps-`, `inset-inline-*`) and `.dz-flip` for directional glyphs, so
 toggling FR↔AR moves the whole layout (sidebar to the right, chevrons flipped).

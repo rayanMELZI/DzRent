@@ -22,14 +22,14 @@ export interface QuoteOptions {
 export interface Quote {
   dailyRateDA: number;
   totalDays: number;
-  subtotalDA: number;        // rental days (with weekly/monthly tiering)
+  subtotalDA: number; // rental days (with weekly/monthly tiering)
   optionsDA: number;
   insuranceAmountDA: number;
   discountDA: number;
   taxRatePct: number;
   taxAmountDA: number;
   depositAmountDA: number;
-  totalAmountDA: number;     // grand total charged to client (excl. deposit)
+  totalAmountDA: number; // grand total charged to client (excl. deposit)
 }
 
 /**
@@ -49,11 +49,16 @@ export class PricingService {
     private readonly platformConfig: PlatformConfigService,
   ) {}
 
-  async resolveRates(vehicleId: string): Promise<ResolvedRates & { agencyId: string; wilayaId: number }> {
+  async resolveRates(
+    vehicleId: string,
+  ): Promise<ResolvedRates & { agencyId: string; wilayaId: number }> {
     const vehicle = await this.prisma.vehicle.findUnique({
       where: { id: vehicleId, deletedAt: null },
       select: {
-        agencyId: true, dailyRateDA: true, weeklyRateDA: true, monthlyRateDA: true,
+        agencyId: true,
+        dailyRateDA: true,
+        weeklyRateDA: true,
+        monthlyRateDA: true,
         depositAmountDA: true,
         category: { select: { slug: true } },
         agency: { select: { wilayaId: true } },
@@ -85,17 +90,30 @@ export class PricingService {
       agencyId: vehicle.agencyId,
       wilayaId: vehicle.agency.wilayaId,
       dailyRateDA: Number(daily),
-      weeklyRateDA: vehicle.weeklyRateDA != null ? Number(vehicle.weeklyRateDA)
-                  : activeRule?.weeklyRateDA != null ? Number(activeRule.weeklyRateDA) : null,
-      monthlyRateDA: vehicle.monthlyRateDA != null ? Number(vehicle.monthlyRateDA)
-                   : activeRule?.monthlyRateDA != null ? Number(activeRule.monthlyRateDA) : null,
-      depositAmountDA: vehicleDeposit > 0 ? vehicleDeposit
-                     : activeRule ? Number(activeRule.depositAmountDA) : 0,
+      weeklyRateDA:
+        vehicle.weeklyRateDA != null
+          ? Number(vehicle.weeklyRateDA)
+          : activeRule?.weeklyRateDA != null
+            ? Number(activeRule.weeklyRateDA)
+            : null,
+      monthlyRateDA:
+        vehicle.monthlyRateDA != null
+          ? Number(vehicle.monthlyRateDA)
+          : activeRule?.monthlyRateDA != null
+            ? Number(activeRule.monthlyRateDA)
+            : null,
+      depositAmountDA:
+        vehicleDeposit > 0 ? vehicleDeposit : activeRule ? Number(activeRule.depositAmountDA) : 0,
       taxRatePct: activeRule ? Number(activeRule.taxRatePct) : 19,
     };
   }
 
-  async buildQuote(vehicleId: string, from: Date, until: Date, options: QuoteOptions = {}): Promise<Quote> {
+  async buildQuote(
+    vehicleId: string,
+    from: Date,
+    until: Date,
+    options: QuoteOptions = {},
+  ): Promise<Quote> {
     if (until <= from) {
       throw new BusinessRuleException('INVALID_PERIOD', 'Return date must be after pickup date.');
     }

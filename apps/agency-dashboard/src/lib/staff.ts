@@ -54,8 +54,12 @@ export function useAddStaff(agencyId: string | undefined) {
   const { authedRequest } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { phone: string; firstName: string; lastName: string; staffRole: string }) =>
-      authedRequest(`/agencies/${agencyId}/staff`, { method: 'POST', body: input }),
+    mutationFn: (input: {
+      phone: string;
+      firstName: string;
+      lastName: string;
+      staffRole: string;
+    }) => authedRequest(`/agencies/${agencyId}/staff`, { method: 'POST', body: input }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['staff', agencyId] }),
   });
 }

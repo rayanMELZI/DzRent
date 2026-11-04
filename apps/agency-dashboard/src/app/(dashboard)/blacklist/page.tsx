@@ -72,7 +72,9 @@ export default function Blacklist() {
             />
           ))}
           {people.length === 0 && (
-            <div className="dz-body rounded-r3 bg-paper p-10 text-center text-ink-4 shadow-soft">—</div>
+            <div className="dz-body rounded-r3 bg-paper p-10 text-center text-ink-4 shadow-soft">
+              —
+            </div>
           )}
         </div>
       )}
@@ -106,7 +108,10 @@ function PersonRow({
 
   return (
     <div className="overflow-hidden rounded-r3 bg-paper shadow-soft">
-      <button onClick={onToggle} className="flex w-full items-center gap-3.5 px-[18px] py-3.5 text-start">
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center gap-3.5 px-[18px] py-3.5 text-start"
+      >
         <div className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-full bg-status-blacklist-bg text-[14px] font-semibold text-status-blacklist-ink">
           {person.user.initials}
         </div>
@@ -125,11 +130,7 @@ function PersonRow({
               : 'bg-status-blacklist-bg text-status-blacklist-ink'
           }`}
         >
-          <Icon
-            name="shield"
-            size={13}
-            stroke={person.agencyCount > 1 ? '#fff' : '#7A1F17'}
-          />
+          <Icon name="shield" size={13} stroke={person.agencyCount > 1 ? '#fff' : '#7A1F17'} />
           {agencyLabel}
         </span>
 

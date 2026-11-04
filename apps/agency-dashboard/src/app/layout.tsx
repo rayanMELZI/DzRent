@@ -5,7 +5,7 @@ import { Providers } from './providers';
 export const metadata: Metadata = {
   title: 'DzRent Pro — Tableau de bord agence',
   description:
-    "Plateforme de gestion pour agences de location de voitures en Algérie : flotte, réservations, vérification KYC, liste noire inter-agences et suivi GPS.",
+    'Plateforme de gestion pour agences de location de voitures en Algérie : flotte, réservations, vérification KYC, liste noire inter-agences et suivi GPS.',
 };
 
 export const viewport: Viewport = {

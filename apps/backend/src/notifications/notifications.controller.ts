@@ -14,9 +14,16 @@ export class NotificationsController {
 
   @Get('me')
   @ApiOperation({ summary: 'My notification center (items + unread count)' })
-  async mine(@CurrentUser('id') userId: string, @Query('page') page = '1', @Query('limit') limit = '20') {
+  async mine(
+    @CurrentUser('id') userId: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+  ) {
     const take = Math.min(Math.max(Number(limit) || 20, 1), 50);
-    return { success: true, data: await this.notifications.listMine(userId, Number(page) || 1, take) };
+    return {
+      success: true,
+      data: await this.notifications.listMine(userId, Number(page) || 1, take),
+    };
   }
 
   @Post('read-all')

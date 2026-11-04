@@ -15,14 +15,14 @@ import { configValidationSchema } from './config.validation';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true,        // ConfigService available everywhere
+      isGlobal: true, // ConfigService available everywhere
       load: [configuration], // typed factory fn
       validationSchema: configValidationSchema,
       validationOptions: {
-        allowUnknown: true,  // don't error on extra env vars (CI injects many)
-        abortEarly: false,   // report ALL validation errors at once
+        allowUnknown: true, // don't error on extra env vars (CI injects many)
+        abortEarly: false, // report ALL validation errors at once
       },
-      cache: true,           // micro-optimisation: parse env once, not per injection
+      cache: true, // micro-optimisation: parse env once, not per injection
     }),
   ],
 })

@@ -13,7 +13,14 @@ import PDFDocument from 'pdfkit';
 interface Args {
   contractRef: string;
   booking: any;
-  clauses: { clauseCode: string; titleFr: string; titleAr: string; contentFr: string; contentAr: string; isMandatory: boolean }[];
+  clauses: {
+    clauseCode: string;
+    titleFr: string;
+    titleAr: string;
+    contentFr: string;
+    contentAr: string;
+    isMandatory: boolean;
+  }[];
 }
 
 export async function buildContractPdf(args: Args): Promise<Buffer> {
@@ -22,15 +29,26 @@ export async function buildContractPdf(args: Args): Promise<Buffer> {
   const chunks: Buffer[] = [];
   doc.on('data', (c) => chunks.push(c as Buffer));
 
-  const done = new Promise<Buffer>((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));
+  const done = new Promise<Buffer>((resolve) =>
+    doc.on('end', () => resolve(Buffer.concat(chunks))),
+  );
 
   doc.fontSize(18).text('CONTRAT DE LOCATION DE VÉHICULE', { align: 'center' });
-  doc.moveDown(0.3).fontSize(10).fillColor('#666')
-     .text(`Référence: ${contractRef}`, { align: 'center' })
-     .text('DzRent — Plateforme de location de véhicules', { align: 'center' });
+  doc
+    .moveDown(0.3)
+    .fontSize(10)
+    .fillColor('#666')
+    .text(`Référence: ${contractRef}`, { align: 'center' })
+    .text('DzRent — Plateforme de location de véhicules', { align: 'center' });
   doc.moveDown().fillColor('#000');
 
-  const line = (label: string, value: string) => doc.fontSize(10).text(`${label}: `, { continued: true }).font('Helvetica-Bold').text(value).font('Helvetica');
+  const line = (label: string, value: string) =>
+    doc
+      .fontSize(10)
+      .text(`${label}: `, { continued: true })
+      .font('Helvetica-Bold')
+      .text(value)
+      .font('Helvetica');
 
   doc.fontSize(13).text('Agence', { underline: true }).moveDown(0.3);
   line('Nom', booking.agency.name);
@@ -43,7 +61,10 @@ export async function buildContractPdf(args: Args): Promise<Buffer> {
   if (booking.client.nationalIdNumber) line('CIN', booking.client.nationalIdNumber);
 
   doc.moveDown(0.6).fontSize(13).text('Véhicule & Période', { underline: true }).moveDown(0.3);
-  line('Véhicule', `${booking.vehicle.make} ${booking.vehicle.model} (${booking.vehicle.licensePlate})`);
+  line(
+    'Véhicule',
+    `${booking.vehicle.make} ${booking.vehicle.model} (${booking.vehicle.licensePlate})`,
+  );
   line('Du', new Date(booking.confirmedFrom ?? booking.requestedFrom).toISOString().slice(0, 10));
   line('Au', new Date(booking.confirmedUntil ?? booking.requestedUntil).toISOString().slice(0, 10));
   line('Total', `${booking.totalAmountDA} DA`);
@@ -51,15 +72,27 @@ export async function buildContractPdf(args: Args): Promise<Buffer> {
 
   doc.moveDown(0.8).fontSize(13).text('Clauses contractuelles', { underline: true }).moveDown(0.4);
   clauses.forEach((c, i) => {
-    doc.fontSize(11).font('Helvetica-Bold').text(`${i + 1}. ${c.titleFr}${c.isMandatory ? '' : ' (optionnelle)'}`);
-    doc.fontSize(9).font('Helvetica').fillColor('#333').text(c.contentFr, { align: 'justify' }).fillColor('#000');
+    doc
+      .fontSize(11)
+      .font('Helvetica-Bold')
+      .text(`${i + 1}. ${c.titleFr}${c.isMandatory ? '' : ' (optionnelle)'}`);
+    doc
+      .fontSize(9)
+      .font('Helvetica')
+      .fillColor('#333')
+      .text(c.contentFr, { align: 'justify' })
+      .fillColor('#000');
     doc.moveDown(0.5);
   });
 
-  doc.moveDown(1).fontSize(10)
-     .text('Signature du locataire: ______________________     Date: __________', { continued: false })
-     .moveDown(0.5)
-     .text('Signature de l\'agence: ______________________     Date: __________');
+  doc
+    .moveDown(1)
+    .fontSize(10)
+    .text('Signature du locataire: ______________________     Date: __________', {
+      continued: false,
+    })
+    .moveDown(0.5)
+    .text("Signature de l'agence: ______________________     Date: __________");
 
   doc.end();
   return done;

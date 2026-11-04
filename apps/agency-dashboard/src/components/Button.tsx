@@ -5,15 +5,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { Icon, type IconName } from './Icon';
 
-type Variant =
-  | 'primary'
-  | 'clay'
-  | 'outline'
-  | 'ghost'
-  | 'soft'
-  | 'dark'
-  | 'danger'
-  | 'success';
+type Variant = 'primary' | 'clay' | 'outline' | 'ghost' | 'soft' | 'dark' | 'danger' | 'success';
 type Size = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<Variant, string> = {
@@ -59,7 +51,9 @@ export function Button({
     >
       {icon && <Icon name={icon} size={iconSize} stroke="currentColor" />}
       {children}
-      {iconRight && <Icon name={iconRight} size={iconSize} stroke="currentColor" className="dz-flip" />}
+      {iconRight && (
+        <Icon name={iconRight} size={iconSize} stroke="currentColor" className="dz-flip" />
+      )}
     </button>
   );
 }

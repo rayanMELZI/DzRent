@@ -3,9 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export interface AuditEntry {
   userId?: string | null;
-  entityType: string;   // "Booking" | "KycDocument" | "Vehicle" | ...
+  entityType: string; // "Booking" | "KycDocument" | "Vehicle" | ...
   entityId: string;
-  action: string;       // "STATUS_CHANGED" | "DOCUMENT_APPROVED" | ...
+  action: string; // "STATUS_CHANGED" | "DOCUMENT_APPROVED" | ...
   oldValue?: unknown;
   newValue?: unknown;
   ipAddress?: string;
@@ -36,7 +36,10 @@ export class AuditService {
         },
       });
     } catch (e) {
-      this.logger.error(`AUDIT WRITE FAILED [${entry.entityType}:${entry.entityId} ${entry.action}]`, e as Error);
+      this.logger.error(
+        `AUDIT WRITE FAILED [${entry.entityType}:${entry.entityId} ${entry.action}]`,
+        e as Error,
+      );
     }
   }
 }

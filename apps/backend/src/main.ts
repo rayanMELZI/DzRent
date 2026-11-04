@@ -61,9 +61,7 @@ async function bootstrap(): Promise<void> {
   if (nodeEnv !== 'production') {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('DzRent API')
-      .setDescription(
-        'DzRent — Algerian Car Rental Platform · Client PWA + Agency SaaS',
-      )
+      .setDescription('DzRent — Algerian Car Rental Platform · Client PWA + Agency SaaS')
       .setVersion('1.0.0')
       .addBearerAuth(
         { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },

@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import {
-  ISmsService,
-  OtpSmsPayload,
-  NotificationSmsPayload,
-  SmsSendResult,
-} from './sms.interface';
+import { ISmsService, OtpSmsPayload, NotificationSmsPayload, SmsSendResult } from './sms.interface';
 
 /**
  * MockSmsService — in-memory SMS implementation for tests.
@@ -64,9 +59,7 @@ export class MockSmsService implements ISmsService {
     };
   }
 
-  async sendNotification(
-    payload: NotificationSmsPayload,
-  ): Promise<SmsSendResult> {
+  async sendNotification(payload: NotificationSmsPayload): Promise<SmsSendResult> {
     if (this.simulateFailure) {
       return {
         success: false,

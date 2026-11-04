@@ -18,5 +18,4 @@ export const ROLES_KEY = 'dzrent_roles';
  * Controller-level roles set a default for all routes in the controller.
  * Handler-level @Roles() overrides the controller default for that route.
  */
-export const Roles = (...roles: UserRole[]) =>
-  SetMetadata(ROLES_KEY, roles);
+export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);

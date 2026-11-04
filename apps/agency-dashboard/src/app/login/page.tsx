@@ -117,7 +117,13 @@ export default function LoginPage() {
               </Field>
             </div>
             {error && <p className="dz-sm mt-3 text-status-refused-ink">{error}</p>}
-            <Button full className="mt-5" onClick={sendOtp} disabled={!phone || busy} iconRight="chevron">
+            <Button
+              full
+              className="mt-5"
+              onClick={sendOtp}
+              disabled={!phone || busy}
+              iconRight="chevron"
+            >
               {t('otp_continue')}
             </Button>
             <p className="dz-xs mt-4 text-center text-ink-4">{t('otp_terms')}</p>
@@ -126,7 +132,10 @@ export default function LoginPage() {
           <>
             <h1 className="dz-h2 text-ink">{t('otp_code_title')}</h1>
             <p className="dz-sm mt-1 text-ink-3">
-              {t('otp_code_sub')} <span className="dz-mono text-ink-2" dir="ltr">+213 {phone}</span>
+              {t('otp_code_sub')}{' '}
+              <span className="dz-mono text-ink-2" dir="ltr">
+                +213 {phone}
+              </span>
             </p>
             <div className="mt-5 flex flex-col gap-3.5">
               <Field label={t('otp_code_title')}>
@@ -142,11 +151,25 @@ export default function LoginPage() {
                 />
               </Field>
               <div className="grid grid-cols-2 gap-2.5">
-                <Field label={lang === 'ar' ? 'الاسم' : 'Prénom'} hint={lang === 'ar' ? 'أول دخول' : '1er accès'}>
-                  <input value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
+                <Field
+                  label={lang === 'ar' ? 'الاسم' : 'Prénom'}
+                  hint={lang === 'ar' ? 'أول دخول' : '1er accès'}
+                >
+                  <input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className={inputClass}
+                  />
                 </Field>
-                <Field label={lang === 'ar' ? 'اللقب' : 'Nom'} hint={lang === 'ar' ? 'أول دخول' : '1er accès'}>
-                  <input value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
+                <Field
+                  label={lang === 'ar' ? 'اللقب' : 'Nom'}
+                  hint={lang === 'ar' ? 'أول دخول' : '1er accès'}
+                >
+                  <input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className={inputClass}
+                  />
                 </Field>
               </div>
             </div>

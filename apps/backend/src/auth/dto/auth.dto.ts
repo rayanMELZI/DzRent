@@ -1,12 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  IsNotEmpty,
-  Matches,
-  Length,
-  IsOptional,
-  IsIn,
-} from 'class-validator';
+import { IsString, IsNotEmpty, Matches, Length, IsOptional, IsIn } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { normaliseAlgerianPhone } from '../../common/utils/phone.util';
 

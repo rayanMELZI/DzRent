@@ -19,7 +19,7 @@ import { AuthenticatedUser } from '../../common/decorators/current-user.decorato
  *   ③ Agency context is resolved for AGENCY_OWNER / AGENCY_STAFF
  *
  * Performance note: this is a single indexed query (id PK lookup + optional
- * AgencyStaff join). At high scale, Redis caching of the user record (TTL = 
+ * AgencyStaff join). At high scale, Redis caching of the user record (TTL =
  * access token lifetime) can replace this, but premature for Sprint 2.
  */
 @Injectable()
@@ -38,9 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
     // ── Token type guard ────────────────────────────────────────────────
     if (payload.type !== 'access') {
-      throw new UnauthorizedException(
-        'Invalid token type — use your access token here.',
-      );
+      throw new UnauthorizedException('Invalid token type — use your access token here.');
     }
 
     // ── DB lookup: full user + optional agency context ──────────────────
@@ -77,9 +75,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
     // ── Account existence check ─────────────────────────────────────────
     if (!user) {
-      throw new UnauthorizedException(
-        'Account not found or has been deleted.',
-      );
+      throw new UnauthorizedException('Account not found or has been deleted.');
     }
 
     // ── Live status checks (catches bans issued AFTER token was minted) ─
@@ -90,9 +86,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     if (user.status === UserStatus.BANNED) {
-      throw new UnauthorizedException(
-        'Your account has been permanently banned.',
-      );
+      throw new UnauthorizedException('Your account has been permanently banned.');
     }
 
     // ── Resolve agencyId for multi-tenant isolation ─────────────────────
@@ -102,10 +96,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
     if (user.role === UserRole.AGENCY_STAFF && user.agencyStaff?.isActive) {
       agencyId = user.agencyStaff.agencyId;
-    } else if (
-      user.role === UserRole.AGENCY_OWNER &&
-      user.ownedAgencies.length > 0
-    ) {
+    } else if (user.role === UserRole.AGENCY_OWNER && user.ownedAgencies.length > 0) {
       // Owner's primary agency. Multi-agency switching is handled in Sprint 3
       // via an explicit "switch agency" endpoint that re-issues tokens.
       agencyId = user.ownedAgencies[0].id;

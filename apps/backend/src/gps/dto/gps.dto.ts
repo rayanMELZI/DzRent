@@ -1,6 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsBoolean, IsISO8601, IsNumber, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsISO8601,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
 export class GpsPingDto {
   @ApiProperty() @IsString() deviceId: string;
@@ -14,6 +25,9 @@ export class GpsPingDto {
 
 export class GpsBatchDto {
   @ApiProperty({ type: [GpsPingDto] })
-  @IsArray() @ArrayMaxSize(100) @ValidateNested({ each: true }) @Type(() => GpsPingDto)
+  @IsArray()
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => GpsPingDto)
   pings: GpsPingDto[];
 }

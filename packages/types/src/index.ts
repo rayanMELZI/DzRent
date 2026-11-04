@@ -14,12 +14,7 @@
 // ── Geography ────────────────────────────────────────────────────────────────
 
 /** Algerian planning regions used for logistics and pricing tiers. */
-export type RegionCode =
-  | 'NORD_CENTRE'
-  | 'NORD_EST'
-  | 'NORD_OUEST'
-  | 'HAUTS_PLATEAUX'
-  | 'GRAND_SUD';
+export type RegionCode = 'NORD_CENTRE' | 'NORD_EST' | 'NORD_OUEST' | 'HAUTS_PLATEAUX' | 'GRAND_SUD';
 
 export interface Wilaya {
   /** Official Algerian wilaya code as a string, e.g. "16" for Alger. */
@@ -37,13 +32,7 @@ export interface Region {
 
 // ── Vehicle / catalogue ──────────────────────────────────────────────────────
 
-export type CategoryId =
-  | 'citadine'
-  | 'berline'
-  | 'suv'
-  | 'utilitaire'
-  | 'minivan'
-  | 'prestige';
+export type CategoryId = 'citadine' | 'berline' | 'suv' | 'utilitaire' | 'minivan' | 'prestige';
 
 export interface Category {
   id: CategoryId;
@@ -236,8 +225,4 @@ export function computeTotals(params: {
 // ── Agency-side vehicle/fleet status (shared status vocabulary) ──────────────
 
 export type VehicleFleetStatus =
-  | 'available'
-  | 'rented'
-  | 'maintenance'
-  | 'out_of_service'
-  | 'inspection';
+  'available' | 'rented' | 'maintenance' | 'out_of_service' | 'inspection';

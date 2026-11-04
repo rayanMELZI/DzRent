@@ -5,7 +5,13 @@
  */
 import { Icon } from './Icon';
 
-export function VerifiedBadge({ size = 16, title = 'Vérifiée' }: { size?: number; title?: string }) {
+export function VerifiedBadge({
+  size = 16,
+  title = 'Vérifiée',
+}: {
+  size?: number;
+  title?: string;
+}) {
   return (
     <span
       className="inline-grid place-items-center rounded-full bg-primary text-white"

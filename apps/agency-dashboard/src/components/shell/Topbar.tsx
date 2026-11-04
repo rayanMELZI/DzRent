@@ -97,7 +97,9 @@ export function Topbar() {
 
           {open && (
             <div className="dz-pop absolute end-0 top-12 z-[200] w-[360px] overflow-hidden rounded-r3 bg-paper shadow-card">
-              <div className="dz-h3 border-b border-line-2 px-4 py-3 text-ink">{t('notif_title')}</div>
+              <div className="dz-h3 border-b border-line-2 px-4 py-3 text-ink">
+                {t('notif_title')}
+              </div>
               <div className="max-h-[380px] overflow-y-auto">
                 {items.length === 0 && (
                   <div className="dz-sm px-4 py-8 text-center text-ink-4">{t('notif_empty')}</div>
@@ -110,12 +112,16 @@ export function Topbar() {
                     }`}
                   >
                     <div className="flex items-start gap-2.5">
-                      {!n.readAt && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-clay" />}
+                      {!n.readAt && (
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-clay" />
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="dz-sm text-ink" style={{ overflowWrap: 'anywhere' }}>
                           {n.payload?.body ?? n.templateId}
                         </div>
-                        <div className="dz-xs mt-1 text-ink-4">{relativeFromNow(n.createdAt, lang)}</div>
+                        <div className="dz-xs mt-1 text-ink-4">
+                          {relativeFromNow(n.createdAt, lang)}
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -9,7 +9,13 @@ import { useState } from 'react';
 import { useLang } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { useStore } from '@/lib/store';
-import { useAddStaff, useMyAgency, useRemoveStaff, useStaff, type ApiStaffMember } from '@/lib/staff';
+import {
+  useAddStaff,
+  useMyAgency,
+  useRemoveStaff,
+  useStaff,
+  type ApiStaffMember,
+} from '@/lib/staff';
 import { ApiError } from '@/lib/api';
 import { Icon } from '@/components/Icon';
 import { Button } from '@/components/Button';
@@ -51,9 +57,7 @@ export default function StaffScreen() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-3.5 flex items-center justify-between gap-3">
-        <p className="dz-sm m-0 text-ink-3">
-          {agency.data?.name ?? ''}
-        </p>
+        <p className="dz-sm m-0 text-ink-3">{agency.data?.name ?? ''}</p>
         {isOwner && (
           <Button size="sm" icon="plus" onClick={() => setAdding(true)}>
             {lang === 'ar' ? 'إضافة عضو' : 'Ajouter un membre'}
@@ -94,7 +98,10 @@ export default function StaffScreen() {
           )}
 
           {members.map((m) => (
-            <div key={m.id} className="flex items-center gap-3.5 rounded-r3 bg-paper p-4 shadow-soft">
+            <div
+              key={m.id}
+              className="flex items-center gap-3.5 rounded-r3 bg-paper p-4 shadow-soft"
+            >
               <div className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-primary-soft text-[15px] font-semibold text-primary-deep">
                 {initialsOf(m.user.firstName, m.user.lastName)}
               </div>
@@ -196,10 +203,19 @@ function AddStaffModal({
         <div className="flex flex-col gap-3.5">
           <div className="grid grid-cols-2 gap-3">
             <Field label={lang === 'ar' ? 'الاسم' : 'Prénom'}>
-              <input value={form.firstName} onChange={(e) => set('firstName')(e.target.value)} className={inputClass} autoFocus />
+              <input
+                value={form.firstName}
+                onChange={(e) => set('firstName')(e.target.value)}
+                className={inputClass}
+                autoFocus
+              />
             </Field>
             <Field label={lang === 'ar' ? 'اللقب' : 'Nom'}>
-              <input value={form.lastName} onChange={(e) => set('lastName')(e.target.value)} className={inputClass} />
+              <input
+                value={form.lastName}
+                onChange={(e) => set('lastName')(e.target.value)}
+                className={inputClass}
+              />
             </Field>
           </div>
           <Field label={t('otp_title')}>
@@ -218,7 +234,9 @@ function AddStaffModal({
                   key={r}
                   onClick={() => set('staffRole')(r)}
                   className={`rounded-r2 px-3 py-2 text-[13px] font-semibold ${
-                    form.staffRole === r ? 'bg-primary text-white' : 'bg-sand text-ink-2 hover:text-ink'
+                    form.staffRole === r
+                      ? 'bg-primary text-white'
+                      : 'bg-sand text-ink-2 hover:text-ink'
                   }`}
                 >
                   {ROLE_LABELS[r][lang]}
@@ -230,10 +248,21 @@ function AddStaffModal({
         </div>
 
         <div className="mt-5 flex gap-2.5">
-          <Button variant="ghost" full onClick={onClose} className="shadow-[inset_0_0_0_1px_#DDD7CA]">
+          <Button
+            variant="ghost"
+            full
+            onClick={onClose}
+            className="shadow-[inset_0_0_0_1px_#DDD7CA]"
+          >
             {t('common_cancel')}
           </Button>
-          <Button variant="primary" full icon="plus" onClick={submit} disabled={!canSubmit || addStaff.isPending}>
+          <Button
+            variant="primary"
+            full
+            icon="plus"
+            onClick={submit}
+            disabled={!canSubmit || addStaff.isPending}
+          >
             {lang === 'ar' ? 'إضافة' : 'Ajouter'}
           </Button>
         </div>

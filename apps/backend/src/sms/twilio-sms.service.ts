@@ -1,17 +1,8 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Twilio, RestException } from 'twilio';
 
-import {
-  ISmsService,
-  OtpSmsPayload,
-  NotificationSmsPayload,
-  SmsSendResult,
-} from './sms.interface';
+import { ISmsService, OtpSmsPayload, NotificationSmsPayload, SmsSendResult } from './sms.interface';
 
 /**
  * TwilioSmsService — production SMS provider using Twilio's REST API.
@@ -55,9 +46,7 @@ export class TwilioSmsService implements ISmsService {
         body,
       });
 
-      this.logger.log(
-        `OTP SMS sent to ${this.maskPhone(to)} — SID: ${message.sid}`,
-      );
+      this.logger.log(`OTP SMS sent to ${this.maskPhone(to)} — SID: ${message.sid}`);
 
       return { success: true, externalId: message.sid };
     } catch (err: unknown) {
@@ -77,9 +66,7 @@ export class TwilioSmsService implements ISmsService {
         body,
       });
 
-      this.logger.log(
-        `Notification SMS sent to ${this.maskPhone(to)} — SID: ${message.sid}`,
-      );
+      this.logger.log(`Notification SMS sent to ${this.maskPhone(to)} — SID: ${message.sid}`);
 
       return { success: true, externalId: message.sid };
     } catch (err: unknown) {
@@ -100,11 +87,7 @@ export class TwilioSmsService implements ISmsService {
 
   // ── Private helpers ────────────────────────────────────────────────────────
 
-  private buildOtpMessage(
-    otp: string,
-    locale: 'fr' | 'ar',
-    validityMinutes: number,
-  ): string {
+  private buildOtpMessage(otp: string, locale: 'fr' | 'ar', validityMinutes: number): string {
     // Always bilingual — Algerian users freely mix French and Arabic.
     // French line first (matches default locale), Arabic second.
     return (
@@ -114,11 +97,7 @@ export class TwilioSmsService implements ISmsService {
     );
   }
 
-  private handleTwilioError(
-    err: unknown,
-    to: string,
-    context: string,
-  ): never {
+  private handleTwilioError(err: unknown, to: string, context: string): never {
     const twilioErr = err as RestException;
     this.logger.error(
       `${context} SMS FAILED to ${this.maskPhone(to)}: ` +
@@ -133,8 +112,6 @@ export class TwilioSmsService implements ISmsService {
 
   /** Masks phone number for safe logging: +213551****67 */
   private maskPhone(phone: string): string {
-    return phone.length > 6
-      ? phone.slice(0, 7) + '****' + phone.slice(-2)
-      : '***masked***';
+    return phone.length > 6 ? phone.slice(0, 7) + '****' + phone.slice(-2) : '***masked***';
   }
 }

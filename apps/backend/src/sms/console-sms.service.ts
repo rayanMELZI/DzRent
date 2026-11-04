@@ -1,11 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import {
-  ISmsService,
-  OtpSmsPayload,
-  NotificationSmsPayload,
-  SmsSendResult,
-} from './sms.interface';
+import { ISmsService, OtpSmsPayload, NotificationSmsPayload, SmsSendResult } from './sms.interface';
 
 /**
  * ConsoleSmsService — development-only SMS mock.

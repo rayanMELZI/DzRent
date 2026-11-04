@@ -61,7 +61,7 @@ const ADMIN_SELECT = {
   riskFlags: true,
   lastLoginAt: true,
   lastLoginIp: true,
-  otpAttempts: true,           // Useful for support — not the hash
+  otpAttempts: true, // Useful for support — not the hash
   deletedAt: true,
   // Staff relationship
   agencyStaff: {
@@ -123,10 +123,7 @@ export class UsersService {
    *  - Email uniqueness is pre-checked for a cleaner error message than P2002
    *  - nationalIdNumber is set exclusively by the KYC module (Sprint 2.2)
    */
-  async updateProfile(
-    userId: string,
-    dto: UpdateProfileDto,
-  ): Promise<UserResponseDto> {
+  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<UserResponseDto> {
     // ── Email uniqueness pre-check ────────────────────────────────────────
     if (dto.email) {
       const taken = await this.prisma.user.findFirst({
@@ -139,9 +136,7 @@ export class UsersService {
       });
 
       if (taken) {
-        throw new ConflictException(
-          'This email address is already linked to another account.',
-        );
+        throw new ConflictException('This email address is already linked to another account.');
       }
     }
 
@@ -290,9 +285,7 @@ export class UsersService {
    * The DB query fetches all versions ordered by version DESC;
    * this picks the first (latest) occurrence of each documentType.
    */
-  private dedupeKycByType<T extends { documentType: string; version: number }>(
-    docs: T[],
-  ): T[] {
+  private dedupeKycByType<T extends { documentType: string; version: number }>(docs: T[]): T[] {
     const seen = new Set<string>();
     return docs.filter((doc) => {
       if (seen.has(doc.documentType)) return false;

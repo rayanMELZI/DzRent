@@ -15,11 +15,11 @@ export const SMS_TEMPLATES: Record<string, Tpl> = {
     ar: '[DzRent] تمت الموافقة على حجزك {bookingRef}. قم بالدفع لتأكيده.',
   },
   BOOKING_REJECTED: {
-    fr: '[DzRent] Votre réservation {bookingRef} a été refusée par l\'agence. Motif: {reason}',
+    fr: "[DzRent] Votre réservation {bookingRef} a été refusée par l'agence. Motif: {reason}",
     ar: '[DzRent] تم رفض حجزك {bookingRef} من طرف الوكالة. السبب: {reason}',
   },
   BOOKING_PAID: {
-    fr: '[DzRent] Paiement reçu pour {bookingRef}. Votre contrat est prêt à signer dans l\'application.',
+    fr: "[DzRent] Paiement reçu pour {bookingRef}. Votre contrat est prêt à signer dans l'application.",
     ar: '[DzRent] تم استلام الدفع للحجز {bookingRef}. عقدك جاهز للتوقيع في التطبيق.',
   },
   BOOKING_CANCELLED: {
@@ -48,7 +48,11 @@ export const SMS_TEMPLATES: Record<string, Tpl> = {
   },
 };
 
-export function renderTemplate(templateId: string, locale: 'fr' | 'ar', vars: Record<string, string | number>): string {
+export function renderTemplate(
+  templateId: string,
+  locale: 'fr' | 'ar',
+  vars: Record<string, string | number>,
+): string {
   const tpl = SMS_TEMPLATES[templateId];
   if (!tpl) throw new Error(`Unknown SMS template: ${templateId}`);
   let body = tpl[locale];

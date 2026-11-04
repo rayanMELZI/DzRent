@@ -56,7 +56,10 @@ const RISK_FLAG_LABELS: Record<string, { fr: string; ar: string }> = {
     ar: 'حجوزات متزامنة متعددة',
   },
   VELOCITY_ABUSE: { fr: 'Fréquence de réservation anormale', ar: 'وتيرة حجز غير طبيعية' },
-  CIN_DUPLICATE: { fr: 'CIN utilisée sur plusieurs comptes', ar: 'بطاقة تعريف مستعملة في حسابات متعددة' },
+  CIN_DUPLICATE: {
+    fr: 'CIN utilisée sur plusieurs comptes',
+    ar: 'بطاقة تعريف مستعملة في حسابات متعددة',
+  },
   DOCUMENT_MISMATCH: { fr: 'Incohérence entre les documents', ar: 'تعارض بين الوثائق' },
   SUSPICIOUS_GPS_PATTERN: { fr: 'Trajet GPS suspect', ar: 'مسار GPS مريب' },
 };
@@ -121,10 +124,21 @@ export function useRequestDecision() {
   const { authedRequest } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, action, reason }: { id: string; action: 'approve' | 'reject'; reason?: string }) =>
+    mutationFn: ({
+      id,
+      action,
+      reason,
+    }: {
+      id: string;
+      action: 'approve' | 'reject';
+      reason?: string;
+    }) =>
       action === 'approve'
         ? authedRequest(`/bookings/${id}/approve`, { method: 'POST' })
-        : authedRequest(`/bookings/${id}/reject`, { method: 'POST', body: { reason: reason ?? '—' } }),
+        : authedRequest(`/bookings/${id}/reject`, {
+            method: 'POST',
+            body: { reason: reason ?? '—' },
+          }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [QUEUE_KEY] }),
   });
 }

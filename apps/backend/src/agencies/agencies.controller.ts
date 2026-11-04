@@ -1,10 +1,26 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 
 import { AgenciesService } from './agencies.service';
 import {
-  AddStaffDto, AgencyUploadIntentDto, CreateAgencyDto, SubmitAgencyDocumentDto, UpdateAgencyDto, VerifyAgencyDto,
+  AddStaffDto,
+  AgencyUploadIntentDto,
+  CreateAgencyDto,
+  SubmitAgencyDocumentDto,
+  UpdateAgencyDto,
+  VerifyAgencyDto,
 } from './dto/agency.dto';
 import { JwtAuthGuard } from '../auth/guards/auth.guards';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -31,10 +47,14 @@ export class AgenciesController {
   }
 
   @Get('pending-verification')
-  @UseGuards(RolesGuard) @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: '[ADMIN] Agencies awaiting verification' })
   async pending(@Query('page') page = '1', @Query('limit') limit = '20') {
-    return { success: true, ...(await this.agencies.pendingVerification(Number(page), Number(limit))) };
+    return {
+      success: true,
+      ...(await this.agencies.pendingVerification(Number(page), Number(limit))),
+    };
   }
 
   @Get(':id')
@@ -70,7 +90,8 @@ export class AgenciesController {
   }
 
   @Post(':id/verify')
-  @UseGuards(RolesGuard) @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: '[ADMIN] Approve or reject agency verification' })
   async verify(
     @Param('id', ParseUUIDPipe) id: string,
@@ -90,7 +111,10 @@ export class AgenciesController {
   }
 
   @Get(':id/staff')
-  async listStaff(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() caller: AuthenticatedUser) {
+  async listStaff(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() caller: AuthenticatedUser,
+  ) {
     return { success: true, data: await this.agencies.listStaff(id, caller) };
   }
 

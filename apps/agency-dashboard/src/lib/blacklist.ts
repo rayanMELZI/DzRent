@@ -15,7 +15,11 @@ export const REASON_LABELS: Record<string, { fr: string; ar: string; sev: 'high'
   PAYMENT_DEFAULT: { fr: 'Défaut de paiement', ar: 'تخلف عن الدفع', sev: 'mid' },
   VEHICLE_DAMAGE: { fr: 'Dommages non déclarés', ar: 'أضرار غير مصرح بها', sev: 'mid' },
   VIOLENT_BEHAVIOR: { fr: 'Comportement violent', ar: 'سلوك عنيف', sev: 'high' },
-  MULTIPLE_FRAUD_SIGNALS: { fr: 'Signaux de fraude multiples', ar: 'إشارات احتيال متعددة', sev: 'high' },
+  MULTIPLE_FRAUD_SIGNALS: {
+    fr: 'Signaux de fraude multiples',
+    ar: 'إشارات احتيال متعددة',
+    sev: 'high',
+  },
   INSURANCE_FRAUD: { fr: "Fraude à l'assurance", ar: 'احتيال على التأمين', sev: 'high' },
 };
 
@@ -47,9 +51,11 @@ export function useBlacklistPeople(q: string) {
     queryKey: [KEY, query],
     enabled: status === 'authenticated',
     queryFn: async () => {
-      const res = await authedRequest<{ success: true; items: ApiBlacklistPerson[]; total: number }>(
-        `/blacklist/visible${query ? `?q=${encodeURIComponent(query)}` : ''}`,
-      );
+      const res = await authedRequest<{
+        success: true;
+        items: ApiBlacklistPerson[];
+        total: number;
+      }>(`/blacklist/visible${query ? `?q=${encodeURIComponent(query)}` : ''}`);
       return res;
     },
   });

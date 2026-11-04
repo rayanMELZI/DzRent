@@ -71,7 +71,10 @@ export default function RequestsQueue() {
           {query.isPending && (
             <>
               {[0, 1, 2].map((i) => (
-                <div key={i} className="dz-pulse h-[74px] shrink-0 rounded-r2 bg-paper shadow-soft" />
+                <div
+                  key={i}
+                  className="dz-pulse h-[74px] shrink-0 rounded-r2 bg-paper shadow-soft"
+                />
               ))}
             </>
           )}
@@ -110,7 +113,9 @@ export default function RequestsQueue() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[14px] font-semibold text-ink">{r.customer.name}</span>
+                        <span className="text-[14px] font-semibold text-ink">
+                          {r.customer.name}
+                        </span>
                         {r.justNow && (
                           <span className="dz-label rounded-full bg-clay px-1.5 py-0.5 text-[9.5px] text-white">
                             {t('req_new')}

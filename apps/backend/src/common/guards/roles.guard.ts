@@ -40,10 +40,10 @@ export class RolesGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     // Merge handler-level + controller-level @Roles() (handler takes precedence)
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[] | undefined>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[] | undefined>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // No @Roles() decorator on this route → guard is a no-op
     // (JwtAuthGuard already ensures the user is authenticated)
@@ -56,9 +56,7 @@ export class RolesGuard implements CanActivate {
 
     // Should never happen if JwtAuthGuard ran first — defensive check
     if (!user) {
-      throw new UnauthorizedException(
-        'Authentication is required to access this resource.',
-      );
+      throw new UnauthorizedException('Authentication is required to access this resource.');
     }
 
     // ADMIN bypasses ALL role checks — platform superuser

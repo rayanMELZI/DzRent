@@ -22,15 +22,15 @@ import { UserRole, UserStatus } from '@prisma/client';
 // ─────────────────────────────────────────────────────────────────────────────
 export interface AuthenticatedUser {
   // ── Identity ───────────────────────────────────────────────────────────
-  id: string;           // User.id (UUID v4)
-  phone: string;        // E.164 (+213XXXXXXXXX)
+  id: string; // User.id (UUID v4)
+  phone: string; // E.164 (+213XXXXXXXXX)
   email: string | null;
   firstName: string;
   lastName: string;
 
   // ── RBAC ──────────────────────────────────────────────────────────────
-  role: UserRole;       // From Prisma enum — used by @Roles() + RolesGuard
-  status: UserStatus;   // Checked by JwtStrategy — suspended/banned ≠ active
+  role: UserRole; // From Prisma enum — used by @Roles() + RolesGuard
+  status: UserStatus; // Checked by JwtStrategy — suspended/banned ≠ active
 
   // ── i18n / display ────────────────────────────────────────────────────
   locale: 'fr' | 'ar'; // Drives SMS template language + RTL layout
@@ -41,7 +41,7 @@ export interface AuthenticatedUser {
   agencyId: string | null;
 
   // ── Risk (read-only, for fraud checks inside services) ────────────────
-  riskScore: number;   // 0–100 — never modify via this object
+  riskScore: number; // 0–100 — never modify via this object
 }
 
 /**

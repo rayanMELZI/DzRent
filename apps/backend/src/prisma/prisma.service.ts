@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient, Prisma } from '@prisma/client';
 
 import { getCurrentAgencyContext } from '../common/context/agency-context.store';
@@ -37,10 +32,7 @@ import { getCurrentAgencyContext } from '../common/context/agency-context.store'
  * connection pool, exhausting Postgres max_connections.
  */
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
@@ -87,26 +79,31 @@ export class PrismaService
    */
   private registerMiddleware(): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this as any).$use(async (params: Prisma.MiddlewareParams, next: (params: Prisma.MiddlewareParams) => Promise<unknown>) => {
-      const context = getCurrentAgencyContext();
+    (this as any).$use(
+      async (
+        params: Prisma.MiddlewareParams,
+        next: (params: Prisma.MiddlewareParams) => Promise<unknown>,
+      ) => {
+        const context = getCurrentAgencyContext();
 
-      // ── Sprint 3: Uncomment the block below when RLS policies are live ──
-      //
-      // if (context?.agencyId) {
-      //   // SET LOCAL only persists for the current transaction.
-      // await this.$executeRaw`
-      //   SELECT set_config('app.current_agency_id', ${context.agencyId}, true)
-      // `;
-      // }
-      //
-      // ─────────────────────────────────────────────────────────────────────
+        // ── Sprint 3: Uncomment the block below when RLS policies are live ──
+        //
+        // if (context?.agencyId) {
+        //   // SET LOCAL only persists for the current transaction.
+        // await this.$executeRaw`
+        //   SELECT set_config('app.current_agency_id', ${context.agencyId}, true)
+        // `;
+        // }
+        //
+        // ─────────────────────────────────────────────────────────────────────
 
-      // For now: just pass through. Agency isolation is enforced at
-      // application layer via explicit `where: { agencyId }` clauses.
-      void context; // suppress unused-variable warning
+        // For now: just pass through. Agency isolation is enforced at
+        // application layer via explicit `where: { agencyId }` clauses.
+        void context; // suppress unused-variable warning
 
-      return next(params);
-    });
+        return next(params);
+      },
+    );
   }
 
   // ── Slow Query Logger ──────────────────────────────────────────────────────
@@ -118,9 +115,7 @@ export class PrismaService
     (this as any).$on('query', (e: { duration: number; query: string; params: string }) => {
       if (e.duration > 100) {
         this.logger.warn(
-          `🐢 Slow query ${e.duration}ms:\n` +
-          `   Query: ${e.query}\n` +
-          `   Params: ${e.params}`,
+          `🐢 Slow query ${e.duration}ms:\n` + `   Query: ${e.query}\n` + `   Params: ${e.params}`,
         );
       }
     });
@@ -145,7 +140,12 @@ export class PrismaService
    */
   async withAgencyContext<T>(
     agencyId: string,
-    fn: (tx: Omit<PrismaService, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => Promise<T>,
+    fn: (
+      tx: Omit<
+        PrismaService,
+        '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+      >,
+    ) => Promise<T>,
   ): Promise<T> {
     return this.$transaction(async (tx: any) => {
       // Sprint 3: uncomment when RLS policies are live

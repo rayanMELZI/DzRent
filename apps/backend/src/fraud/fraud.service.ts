@@ -39,8 +39,11 @@ export class FraudService {
     });
     await this.recomputeRiskScore(userId);
     await this.audit.log({
-      userId, entityType: 'FraudSignal', entityId: userId,
-      action: 'SIGNAL_RAISED', newValue: { signalType, severity },
+      userId,
+      entityType: 'FraudSignal',
+      entityId: userId,
+      action: 'SIGNAL_RAISED',
+      newValue: { signalType, severity },
     });
     this.logger.warn(`Fraud signal [${signalType} sev=${severity}] user=${userId}`);
   }
@@ -50,7 +53,13 @@ export class FraudService {
       where: { userId, isResolved: false },
       select: { severity: true, signalType: true },
     });
-    const score = Math.min(100, signals.reduce((sum: number, s: { severity: number; signalType: string }) => sum + s.severity * 8, 0));
+    const score = Math.min(
+      100,
+      signals.reduce(
+        (sum: number, s: { severity: number; signalType: string }) => sum + s.severity * 8,
+        0,
+      ),
+    );
     const flags = [...new Set(signals.map((s: { signalType: string }) => s.signalType))];
     await this.prisma.user.update({
       where: { id: userId },

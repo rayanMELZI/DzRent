@@ -17,10 +17,7 @@ import { UserRole, UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SMS_SERVICE, ISmsService } from '../sms/sms.interface';
 import { RequestOtpDto, VerifyOtpDto } from './dto/auth.dto';
-import {
-  JwtPayload,
-  JwtRefreshPayload,
-} from './interfaces/jwt-payload.interface';
+import { JwtPayload, JwtRefreshPayload } from './interfaces/jwt-payload.interface';
 import { addMinutes, nowUtc } from '../common/utils/date.util';
 import { TooManyRequestsException } from '../common/exceptions/app.exceptions';
 import { sha256Hex, safeEqualHex } from '../common/utils/crypto.util';
@@ -29,9 +26,9 @@ import { sha256Hex, safeEqualHex } from '../common/utils/crypto.util';
 // Redis key factories — centralised so key patterns are never typo'd elsewhere
 // ─────────────────────────────────────────────────────────────────────────────
 const Keys = {
-  otpCooldown:      (phone: string)              => `dzrent:otp:cooldown:${phone}`,
-  refreshToken:     (userId: string, jti: string) => `dzrent:refresh:${userId}:${jti}`,
-  allRefreshTokens: (userId: string)              => `dzrent:refresh:${userId}:*`,
+  otpCooldown: (phone: string) => `dzrent:otp:cooldown:${phone}`,
+  refreshToken: (userId: string, jti: string) => `dzrent:refresh:${userId}:${jti}`,
+  allRefreshTokens: (userId: string) => `dzrent:refresh:${userId}:*`,
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -69,16 +66,16 @@ export class AuthService {
 
   // Kept in sync with PlatformConfig seed values (src/prisma/seed.ts).
   // In Sprint 3 these will be read from PlatformConfig at runtime.
-  private readonly OTP_VALIDITY_MINUTES     = 10;
-  private readonly OTP_MAX_ATTEMPTS         = 5;
-  private readonly OTP_LOCKOUT_MINUTES      = 30;
+  private readonly OTP_VALIDITY_MINUTES = 10;
+  private readonly OTP_MAX_ATTEMPTS = 5;
+  private readonly OTP_LOCKOUT_MINUTES = 30;
   private readonly OTP_RESEND_COOLDOWN_SECS = 60;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
-    @InjectRedis()      private readonly redis:      Redis,
+    @InjectRedis() private readonly redis: Redis,
     @Inject(SMS_SERVICE) private readonly smsService: ISmsService,
   ) {}
 
@@ -136,8 +133,8 @@ export class AuthService {
         existingUser.otpExpiresAt > nowUtc();
 
       if (isLocked) {
-        const remainingMs   = existingUser.otpExpiresAt!.getTime() - nowUtc().getTime();
-        const remainingMin  = Math.ceil(remainingMs / 60_000);
+        const remainingMs = existingUser.otpExpiresAt!.getTime() - nowUtc().getTime();
+        const remainingMin = Math.ceil(remainingMs / 60_000);
         throw new TooManyRequestsException(
           `Account temporarily locked. Try again in ${remainingMin} minute(s).`,
         );
@@ -145,8 +142,8 @@ export class AuthService {
     }
 
     // ── Generate + hash OTP ──────────────────────────────────────────────
-    const otpCode     = this.generateOtp();
-    const otpHash     = await bcrypt.hash(otpCode, BCRYPT_ROUNDS);
+    const otpCode = this.generateOtp();
+    const otpHash = await bcrypt.hash(otpCode, BCRYPT_ROUNDS);
     const otpExpiresAt = addMinutes(nowUtc(), this.OTP_VALIDITY_MINUTES);
 
     // ── Persist OTP to DB (upsert: create on first request, reset on resend) ─
@@ -154,8 +151,8 @@ export class AuthService {
       where: { phone },
       create: {
         phone,
-        firstName: 'Pending',        // Replaced when OTP is verified
-        lastName:  'Verification',
+        firstName: 'Pending', // Replaced when OTP is verified
+        lastName: 'Verification',
         otpHash,
         otpExpiresAt,
         otpAttempts: 0,
@@ -164,7 +161,7 @@ export class AuthService {
       update: {
         otpHash,
         otpExpiresAt,
-        otpAttempts: 0,              // Reset counter; user is starting fresh
+        otpAttempts: 0, // Reset counter; user is starting fresh
       },
     });
 
@@ -172,9 +169,9 @@ export class AuthService {
     // If sendOtp() throws (Twilio down / invalid number), the exception
     // propagates here; no cooldown is set; user can retry immediately.
     const smsResult = await this.smsService.sendOtp({
-      to:              phone,
-      otp:             otpCode,
-      locale:          'fr',         // Default; updated at verify-otp step
+      to: phone,
+      otp: otpCode,
+      locale: 'fr', // Default; updated at verify-otp step
       validityMinutes: this.OTP_VALIDITY_MINUTES,
     });
 
@@ -185,17 +182,11 @@ export class AuthService {
         `SMS delivery failed for ${this.maskPhone(phone)}: ` +
           `[${smsResult.errorCode}] ${smsResult.errorMessage}`,
       );
-      throw new InternalServerErrorException(
-        'Unable to send verification SMS. Please try again.',
-      );
+      throw new InternalServerErrorException('Unable to send verification SMS. Please try again.');
     }
 
     // ── Set per-phone cooldown AFTER successful SMS delivery ─────────────
-    await this.redis.setex(
-      Keys.otpCooldown(phone),
-      this.OTP_RESEND_COOLDOWN_SECS,
-      '1',
-    );
+    await this.redis.setex(Keys.otpCooldown(phone), this.OTP_RESEND_COOLDOWN_SECS, '1');
 
     this.logger.log(
       `OTP requested: ${this.maskPhone(phone)} — sid:${smsResult.externalId ?? 'console'}`,
@@ -229,15 +220,15 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { phone },
       select: {
-        id:           true,
-        status:       true,
-        otpHash:      true,
+        id: true,
+        status: true,
+        otpHash: true,
         otpExpiresAt: true,
-        otpAttempts:  true,
-        firstName:    true,
-        lastName:     true,
-        role:         true,
-        locale:       true,
+        otpAttempts: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        locale: true,
       },
     });
 
@@ -264,7 +255,7 @@ export class AuthService {
 
     if (!isValid) {
       const newAttempts = user.otpAttempts + 1;
-      const shouldLock  = newAttempts >= this.OTP_MAX_ATTEMPTS;
+      const shouldLock = newAttempts >= this.OTP_MAX_ATTEMPTS;
 
       await this.prisma.user.update({
         where: { id: user.id },
@@ -278,9 +269,7 @@ export class AuthService {
       });
 
       if (shouldLock) {
-        this.logger.warn(
-          `OTP lockout: ${this.maskPhone(phone)} after ${newAttempts} attempts`,
-        );
+        this.logger.warn(`OTP lockout: ${this.maskPhone(phone)} after ${newAttempts} attempts`);
         throw new TooManyRequestsException(
           `Too many failed attempts. Account locked for ${this.OTP_LOCKOUT_MINUTES} minutes.`,
         );
@@ -305,46 +294,44 @@ export class AuthService {
     const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
       data: {
-        status:       UserStatus.ACTIVE,
-        otpHash:      null,
+        status: UserStatus.ACTIVE,
+        otpHash: null,
         otpExpiresAt: null,
-        otpAttempts:  0,
-        lastLoginAt:  nowUtc(),
+        otpAttempts: 0,
+        lastLoginAt: nowUtc(),
         locale,
         ...(isNewUser && {
           firstName: firstName!.trim(),
-          lastName:  lastName!.trim(),
+          lastName: lastName!.trim(),
         }),
       },
       select: {
-        id:        true,
-        phone:     true,
+        id: true,
+        phone: true,
         firstName: true,
-        lastName:  true,
-        role:      true,
-        locale:    true,
+        lastName: true,
+        role: true,
+        locale: true,
       },
     });
 
     const tokens = await this.issueTokenPair(updatedUser.id, {
-      phone:  updatedUser.phone,
-      role:   updatedUser.role,
+      phone: updatedUser.phone,
+      role: updatedUser.role,
       locale: updatedUser.locale as 'fr' | 'ar',
     });
 
-    this.logger.log(
-      `${isNewUser ? '🆕 Registered' : '🔑 Login'}: ${this.maskPhone(phone)}`,
-    );
+    this.logger.log(`${isNewUser ? '🆕 Registered' : '🔑 Login'}: ${this.maskPhone(phone)}`);
 
     return {
       ...tokens,
       user: {
-        id:        updatedUser.id,
-        phone:     updatedUser.phone,
+        id: updatedUser.id,
+        phone: updatedUser.phone,
         firstName: updatedUser.firstName,
-        lastName:  updatedUser.lastName,
-        role:      updatedUser.role,
-        locale:    updatedUser.locale,
+        lastName: updatedUser.lastName,
+        role: updatedUser.role,
+        locale: updatedUser.locale,
         isNewUser,
       },
     };
@@ -359,17 +346,11 @@ export class AuthService {
    * Hash mismatch after signature verification = token was forged or reused.
    * Response: revoke ALL sessions for this user (breach containment).
    */
-  async refreshTokens(
-    userId: string,
-    jti:    string,
-    rawToken: string,
-  ): Promise<TokenPair> {
+  async refreshTokens(userId: string, jti: string, rawToken: string): Promise<TokenPair> {
     const storedHash = await this.redis.get(Keys.refreshToken(userId, jti));
 
     if (!storedHash) {
-      throw new UnauthorizedException(
-        'This refresh token has expired or been revoked.',
-      );
+      throw new UnauthorizedException('This refresh token has expired or been revoked.');
     }
 
     const isMatch = safeEqualHex(sha256Hex(rawToken), storedHash);
@@ -396,8 +377,8 @@ export class AuthService {
     }
 
     return this.issueTokenPair(user.id, {
-      phone:  user.phone,
-      role:   user.role,
+      phone: user.phone,
+      role: user.role,
       locale: user.locale as 'fr' | 'ar',
     });
   }
@@ -438,31 +419,31 @@ export class AuthService {
     const jti = randomUUID();
 
     const accessPayload: JwtPayload = {
-      sub:    userId,
-      phone:  data.phone,
-      role:   data.role,
+      sub: userId,
+      phone: data.phone,
+      role: data.role,
       locale: data.locale as 'fr' | 'ar',
-      type:   'access',
+      type: 'access',
     };
 
     const refreshPayload: JwtRefreshPayload = {
-      sub:  userId,
+      sub: userId,
       jti,
       type: 'refresh',
     };
 
-    const jwtSecret           = this.config.get<string>('JWT_SECRET')!;
-    const jwtRefreshSecret    = this.config.get<string>('JWT_REFRESH_SECRET')!;
-    const jwtExpiresIn        = this.config.get<string>('JWT_EXPIRES_IN', '15m');
+    const jwtSecret = this.config.get<string>('JWT_SECRET')!;
+    const jwtRefreshSecret = this.config.get<string>('JWT_REFRESH_SECRET')!;
+    const jwtExpiresIn = this.config.get<string>('JWT_EXPIRES_IN', '15m');
     const jwtRefreshExpiresIn = this.config.get<string>('JWT_REFRESH_EXPIRES_IN', '7d');
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(accessPayload, {
-        secret:    jwtSecret,
+        secret: jwtSecret,
         expiresIn: jwtExpiresIn,
       }),
       this.jwtService.signAsync(refreshPayload, {
-        secret:    jwtRefreshSecret,
+        secret: jwtRefreshSecret,
         expiresIn: jwtRefreshExpiresIn,
       }),
     ]);
@@ -471,13 +452,9 @@ export class AuthService {
     const refreshTtlSeconds = this.parseDurationToSeconds(jwtRefreshExpiresIn);
     // AUDIT FIX B2: sha256, NOT bcrypt — bcrypt truncates at 72 bytes which made
     // every refresh token of a user hash identically (see crypto.util.ts).
-    const refreshHash       = sha256Hex(refreshToken);
+    const refreshHash = sha256Hex(refreshToken);
 
-    await this.redis.setex(
-      Keys.refreshToken(userId, jti),
-      refreshTtlSeconds,
-      refreshHash,
-    );
+    await this.redis.setex(Keys.refreshToken(userId, jti), refreshTtlSeconds, refreshHash);
 
     return {
       accessToken,
@@ -493,17 +470,18 @@ export class AuthService {
 
   /** Masks phone for safe logging: +213551234567 → +213551****67 */
   private maskPhone(phone: string): string {
-    return phone.length > 6
-      ? phone.slice(0, 7) + '****' + phone.slice(-2)
-      : '***';
+    return phone.length > 6 ? phone.slice(0, 7) + '****' + phone.slice(-2) : '***';
   }
 
   /** "15m" → 900, "7d" → 604800 */
   private parseDurationToSeconds(duration: string): number {
     const multipliers: Record<string, number> = {
-      s: 1, m: 60, h: 3_600, d: 86_400,
+      s: 1,
+      m: 60,
+      h: 3_600,
+      d: 86_400,
     };
-    const unit  = duration.slice(-1);
+    const unit = duration.slice(-1);
     const value = parseInt(duration.slice(0, -1), 10);
     return value * (multipliers[unit] ?? 60);
   }

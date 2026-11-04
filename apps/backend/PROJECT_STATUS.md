@@ -19,13 +19,13 @@ Honest accounting of what is built vs. what remains before real-world launch.
 
 ## ⚠️ Built but needs real-world work before launch
 
-| Area | What exists | What's needed |
-|---|---|---|
-| **SATIM payments** | Documented register.do/confirm.do/deposit/reverse/refund flow; factory falls back to Mock | Bank merchant onboarding, terminal credentials, SATIM certification, sandbox testing |
-| **Arabic contracts** | French clauses + Arabic titles in the PDF | Embed Amiri TTF in `assets/fonts/`, add arabic-reshaper + bidi shaping pass |
-| **Multi-tenant RLS** | Policies written (`enable_rls.sql`), ALS context plumbing in place | Enable policies, set `app.current_agency_id` per request via Prisma middleware, session-mode pool for RLS connections |
-| **E-signature** | HMAC-SHA256 proof-of-event (contractRef+userId+timestamp) | Legal review under Algerian law 15-04 for certified electronic signature weight |
-| **GPS at scale** | Table + indexes + computed PostGIS column | Enable pg_partman monthly partitioning or TimescaleDB hypertable before high volume |
+| Area                 | What exists                                                                               | What's needed                                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **SATIM payments**   | Documented register.do/confirm.do/deposit/reverse/refund flow; factory falls back to Mock | Bank merchant onboarding, terminal credentials, SATIM certification, sandbox testing                                  |
+| **Arabic contracts** | French clauses + Arabic titles in the PDF                                                 | Embed Amiri TTF in `assets/fonts/`, add arabic-reshaper + bidi shaping pass                                           |
+| **Multi-tenant RLS** | Policies written (`enable_rls.sql`), ALS context plumbing in place                        | Enable policies, set `app.current_agency_id` per request via Prisma middleware, session-mode pool for RLS connections |
+| **E-signature**      | HMAC-SHA256 proof-of-event (contractRef+userId+timestamp)                                 | Legal review under Algerian law 15-04 for certified electronic signature weight                                       |
+| **GPS at scale**     | Table + indexes + computed PostGIS column                                                 | Enable pg_partman monthly partitioning or TimescaleDB hypertable before high volume                                   |
 
 ## ❌ Not started (operational follow-ups)
 

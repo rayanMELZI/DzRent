@@ -16,8 +16,12 @@ export const configValidationSchema = Joi.object({
   CORS_ORIGINS: Joi.string().default('http://localhost:3001'),
 
   // ── Database ─────────────────────────────────────────────────────────────
-  DATABASE_URL: Joi.string().uri({ scheme: ['postgresql', 'postgres'] }).required(),
-  DIRECT_URL: Joi.string().uri({ scheme: ['postgresql', 'postgres'] }).required(),
+  DATABASE_URL: Joi.string()
+    .uri({ scheme: ['postgresql', 'postgres'] })
+    .required(),
+  DIRECT_URL: Joi.string()
+    .uri({ scheme: ['postgresql', 'postgres'] })
+    .required(),
 
   // ── JWT ──────────────────────────────────────────────────────────────────
   JWT_SECRET: Joi.string().min(32).required(),
@@ -26,7 +30,9 @@ export const configValidationSchema = Joi.object({
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 
   // ── Redis ─────────────────────────────────────────────────────────────────
-  REDIS_URL: Joi.string().uri({ scheme: ['redis', 'rediss'] }).required(),
+  REDIS_URL: Joi.string()
+    .uri({ scheme: ['redis', 'rediss'] })
+    .required(),
 
   // ── Twilio ────────────────────────────────────────────────────────────────
   TWILIO_ACCOUNT_SID: Joi.string().pattern(/^AC/).required(),

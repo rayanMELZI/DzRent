@@ -76,7 +76,7 @@ CI never merges.
 
 These come from the design handoff and earlier mistakes. Treat them as non-negotiable:
 
-1. **Search is agency-first, never car-first.** A model filter returns *agencies*, never
+1. **Search is agency-first, never car-first.** A model filter returns _agencies_, never
    a flat car catalogue.
 2. **Bilingual, true RTL mirror.** Toggling Arabic moves the whole layout, not just text.
 3. **The refundable deposit is visually quarantined** (dashed cold blue-slate) and is

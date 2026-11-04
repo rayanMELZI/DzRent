@@ -6,3 +6,4 @@ coverage
 .turbo
 pnpm-lock.yaml
 **/migrations/**
+docs/design-handoff

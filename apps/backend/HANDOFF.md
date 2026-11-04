@@ -49,19 +49,19 @@ pnpm run start:dev            # Swagger at /api/docs
 
 ## Module map (all under src/)
 
-| Module | Responsibility |
-|---|---|
-| auth, users | OTP login, JWT rotation, profile, admin user list |
-| kyc | Versioned doc upload (presigned S3), admin review, CIN→`nationalIdNumber` + duplicate-CIN fraud signal, booking-eligibility gate |
-| agencies | Onboarding (CLIENT→AGENCY_OWNER promotion), verification docs, admin verify, staff management |
-| vehicles | Agency CRUD, photos/docs (versioned), **compliance gate** (insurance+visite+GPS) for AVAILABLE, public client search |
-| pricing | Rate resolution chain (vehicle override → wilaya rule → 422), tiered quote (monthly/weekly/daily) + options + TVA 19% |
-| bookings | **The orchestrator.** 5 gates (active → KYC → blacklist → risk score → velocity), Serializable overlap-safe creation with advisory-locked `DZR-YYYY-NNNNN` ref, full lifecycle (approve/reject/pickup/return/cancel) with Algerian late-return penalty + policy-snapshot refunds |
-| contracts | Clause selection (mandatory + wilaya-scoped), bilingual PDF (pdfkit), HMAC e-signature |
-| payments | `IPaymentGateway` (SATIM for CIB+Edahabia / Mock), deposit pre-auth→release/capture, cash with AML cap, gap-free per-agency invoicing |
-| blacklist | Cross-agency federation (shares/accepts), admin review |
-| gps | HMAC-signed batch ingestion (no JWT), haversine geofencing + speed flags, Redis-deduped alerts, agency-scoped history |
-| admin, health | Config CRUD, fraud-signal resolution, platform stats; DB+Redis liveness |
+| Module        | Responsibility                                                                                                                                                                                                                                                                   |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| auth, users   | OTP login, JWT rotation, profile, admin user list                                                                                                                                                                                                                                |
+| kyc           | Versioned doc upload (presigned S3), admin review, CIN→`nationalIdNumber` + duplicate-CIN fraud signal, booking-eligibility gate                                                                                                                                                 |
+| agencies      | Onboarding (CLIENT→AGENCY_OWNER promotion), verification docs, admin verify, staff management                                                                                                                                                                                    |
+| vehicles      | Agency CRUD, photos/docs (versioned), **compliance gate** (insurance+visite+GPS) for AVAILABLE, public client search                                                                                                                                                             |
+| pricing       | Rate resolution chain (vehicle override → wilaya rule → 422), tiered quote (monthly/weekly/daily) + options + TVA 19%                                                                                                                                                            |
+| bookings      | **The orchestrator.** 5 gates (active → KYC → blacklist → risk score → velocity), Serializable overlap-safe creation with advisory-locked `DZR-YYYY-NNNNN` ref, full lifecycle (approve/reject/pickup/return/cancel) with Algerian late-return penalty + policy-snapshot refunds |
+| contracts     | Clause selection (mandatory + wilaya-scoped), bilingual PDF (pdfkit), HMAC e-signature                                                                                                                                                                                           |
+| payments      | `IPaymentGateway` (SATIM for CIB+Edahabia / Mock), deposit pre-auth→release/capture, cash with AML cap, gap-free per-agency invoicing                                                                                                                                            |
+| blacklist     | Cross-agency federation (shares/accepts), admin review                                                                                                                                                                                                                           |
+| gps           | HMAC-signed batch ingestion (no JWT), haversine geofencing + speed flags, Redis-deduped alerts, agency-scoped history                                                                                                                                                            |
+| admin, health | Config CRUD, fraud-signal resolution, platform stats; DB+Redis liveness                                                                                                                                                                                                          |
 
 ## What is NOT production-ready (deliberate — see PROJECT_STATUS.md for the full list)
 

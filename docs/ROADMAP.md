@@ -38,6 +38,7 @@ The agency side is where trust lives, so it ships first.
 > phase is wiring the other screens the same way (1.6).
 
 ### 1.1 Requests queue — _the heart of agency trust_ (`/requests`) ✅ (live)
+
 - [x] Tabs: En attente / Approuvées / Refusées with live counts (server-side `counts`)
 - [x] Request list (avatar, name, car, time, `Nouvelle` tag, ⚠ flag)
 - [x] Detail panel: customer header, two trust checks (blacklist presence, risk-signal
@@ -45,10 +46,11 @@ The agency side is where trust lives, so it ships first.
 - [x] Booking period with **total and deposit shown separately** (deposit quarantined)
 - [x] Approve / Refuse action bar → `POST /bookings/:id/approve|reject` + toast
 - 🎯 Approving a request updates the queue and is the same call the client surface will
-      observe live (state contract §8). **Verified e2e** (OTP login → queue → approve →
-      status flips to AWAITING_PAYMENT, counts update).
+  observe live (state contract §8). **Verified e2e** (OTP login → queue → approve →
+  status flips to AWAITING_PAYMENT, counts update).
 
 ### 1.2 Fleet (`/fleet`) ✅ (live)
+
 - [x] Status filter chips with counts + grid/list toggle, live against `GET /vehicles`
 - [x] Vehicle card: plate (mono), two ComplianceDots from **real** insurance/visite expiries
 - [x] Add-vehicle form (`POST /vehicles`; new vehicles start PENDING_INSPECTION per the
@@ -56,6 +58,7 @@ The agency side is where trust lives, so it ships first.
 - [ ] Edit-vehicle form + photo/document uploads (endpoints exist; UI remains)
 
 ### 1.3 Blacklist (`/blacklist`) ✅ (live, strict-rating model)
+
 - [x] Federation view grouped per person: **distinct-agency count badge** (1 agence vs
       N agences), expandable per-report justifications (`GET /blacklist/visible`)
 - [x] "Signaler un client" modal wired to `POST /blacklist` — registered phone +
@@ -63,16 +66,19 @@ The agency side is where trust lives, so it ships first.
 - [x] Severity-colored reason pills (full backend reason vocabulary)
 
 ### 1.4 GPS fleet map (`/map`) — deprioritised by product owner
+
 - [ ] Real map (Leaflet/OSM) + live tracker positions from GPS ingest data
 - [ ] Side panel: active/alert counts + per-vehicle live speed & violation labels
 
 ### 1.5 Revenue (`/revenue`) & Staff (`/staff`) ✅ (live)
+
 - [x] Revenue live: rolling w/m/y KPI windows with previous-window trend, real
       12-month bar trend + by-category breakdown (`GET /bookings/agency/revenue`)
 - [x] Staff live: owner card (session), member cards with role + OTP-pending badge,
       add-member by phone (`POST /agencies/:id/staff`), owner-only removal
 
 ### 1.6 Wire to the backend
+
 - [x] Auth: phone OTP login against `@dzrent/backend`, token storage + refresh
 - [x] Gate the dashboard behind a session; wire topbar + logout to the live user
 - [x] Server-state layer (TanStack Query) + error/loading states (provider + first hooks)
@@ -123,7 +129,7 @@ Goal: the mobile funnel, installable and tolerant of unstable data.
       e-signature → payment → confirmation/active → trips/docs/profile
 - [ ] PWA: installable, offline-tolerant, ≥44px touch targets, self-hosted fonts
 - 🎯 A client completes a booking on a phone; it appears in the agency queue; agency
-      approval flips the client to an active rental.
+  approval flips the client to an active rental.
 
 ---
 

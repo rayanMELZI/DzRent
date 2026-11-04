@@ -35,11 +35,7 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}), // No default secret — intentional (see above)
   ],
-  providers: [
-    AuthService,
-    JwtStrategy,
-    JwtRefreshStrategy,
-  ],
+  providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
   controllers: [AuthController],
   exports: [AuthService, JwtStrategy, JwtRefreshStrategy],
 })
