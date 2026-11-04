@@ -27,6 +27,7 @@ import { BlacklistModule } from './blacklist/blacklist.module';
 import { GpsModule } from './gps/gps.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
+import { CatalogModule } from './catalog/catalog.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { HealthModule } from './health/health.module';
     GpsModule, // Sprint 5
     AdminModule, // Sprint 5
     HealthModule,
+    CatalogModule, // Public client catalogue (agency-first search)
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard }, // AUDIT FIX B4
