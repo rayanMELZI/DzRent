@@ -4,14 +4,13 @@ Production runs as a Docker Compose stack on a single VM, fronted by **nginx** a
 exposed through **Cloudflare Tunnel** (TLS terminated at Cloudflare).
 
 ```
-Cloudflare ─tunnel─► nginx (loopback) ─► Docker containers
-  dzrent-agence.rayanemelzi.dev → :4269 ─►  /api → backend:3001 · / → frontend:3002
-  dzrent.rayanemelzi.dev        → :4242 ─►  client app (Phase 3 — parked placeholder)
+Cloudflare ─tunnel─► nginx :80 (by server_name) ─► Docker containers
+  dzrent-agence.rayanemelzi.dev ─►  /api → backend:3001 · / → frontend:3002 (agency)
+  dzrent.rayanemelzi.dev        ─►  /api → backend:3001 · / → client:3006   (client)
 ```
 
-The backend is **never a public hostname** — the agency frontend and its API share
-one origin (`dzrent-agence.rayanemelzi.dev`); nginx routes `/api/*` to the backend
-container internally (so: no CORS).
+The backend is **never a public hostname** — each site and its API share one origin;
+nginx routes `/api/*` to the backend container internally (so: no CORS).
 
 ## Stack (`docker-compose.prod.yml`)
 
@@ -22,6 +21,7 @@ container internally (so: no CORS).
 | `minio` (+ `minio-init`) | minio/minio                                   | internal only    |
 | `backend`                | built from `apps/backend/Dockerfile`          | `127.0.0.1:3001` |
 | `frontend`               | built from `apps/agency-dashboard/Dockerfile` | `127.0.0.1:3002` |
+| `client`                 | built from `apps/client-web/Dockerfile`       | `127.0.0.1:3006` |
 
 The backend entrypoint runs `prisma migrate deploy` on every boot. Reference data
 (58 wilayas, categories, legal clauses, config) is seeded **once** (see below).
@@ -88,18 +88,15 @@ ssh nanovmdep 'cd ~/dzrent && docker compose -f docker-compose.prod.yml exec -T 
 
 ## C. nginx (one-time, needs sudo)
 
-The Cloudflare tunnel hostnames point to local ports `4269` / `4242`; nginx listens
-there and proxies to the containers.
+Both tunnel hostnames reach nginx on `:80`; one file serves both sites by
+`server_name` and replaces the older per-site `dzrent.conf` / `dzrent-agency.conf`.
 
 ```bash
 sudo cp ~/dzrent/deploy/nginx/dzrent.conf /etc/nginx/sites-available/dzrent.conf
+sudo rm -f /etc/nginx/sites-enabled/dzrent-agency.conf
 sudo ln -sf /etc/nginx/sites-available/dzrent.conf /etc/nginx/sites-enabled/dzrent.conf
 sudo nginx -t && sudo systemctl reload nginx
 ```
-
-(The tunnel hostname → port mapping itself is configured in the Cloudflare Zero
-Trust dashboard: `dzrent-agence.rayanemelzi.dev` → `http://localhost:4269`,
-`dzrent.rayanemelzi.dev` → `http://localhost:4242`.)
 
 ---
 
@@ -108,9 +105,13 @@ Trust dashboard: `dzrent-agence.rayanemelzi.dev` → `http://localhost:4269`,
 ```bash
 # on the VM (internal):
 curl -s http://127.0.0.1:3001/api/v1/health        # {"database":"up","redis":"up"}
-curl -sI http://127.0.0.1:3002                      # 200 (frontend)
+curl -sI http://127.0.0.1:3002                      # 200 (agency dashboard)
+curl -sI http://127.0.0.1:3006                      # 200 (client website)
+curl -s  http://127.0.0.1:3001/api/v1/catalog/wilayas | head -c 80   # public catalogue
 # publicly:
 curl -sI https://dzrent-agence.rayanemelzi.dev      # 200
+curl -sI https://dzrent.rayanemelzi.dev             # 200
+curl -s  https://dzrent.rayanemelzi.dev/api/v1/health   # JSON, not HTML
 ```
 
 Then open `https://dzrent-agence.rayanemelzi.dev`, log in with an Algerian mobile

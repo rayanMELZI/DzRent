@@ -19,7 +19,7 @@ dzrent/
 ├── apps/
 │   ├── backend/            NestJS + Prisma + PostgreSQL/PostGIS + Redis API   → :3000
 │   ├── agency-dashboard/   Next.js desktop SaaS (fleet, bookings, KYC, fraud) → :3001
-│   └── client-pwa/         Next.js mobile PWA (not yet scaffolded)            → :3002
+│   └── client-web/         Next.js desktop client site (search, booking, KYC) → :3004
 ├── packages/
 │   ├── tokens/             Design tokens + Tailwind preset (one visual source of truth)
 │   ├── i18n/               Bilingual FR/AR dictionary, DZD formatter, RTL helpers
@@ -54,8 +54,9 @@ pnpm exec prisma db execute --file ./prisma/manual/add_gps_geography.sql --schem
 pnpm exec prisma db seed           # 58 wilayas, categories, legal clauses, platform config
 cd ../..
 
-# 2) Agency dashboard env
+# 2) Frontend envs
 cp apps/agency-dashboard/.env.example apps/agency-dashboard/.env.local
+cp apps/client-web/.env.example apps/client-web/.env.local
 
 # 3) Run everything (turbo runs each app's dev task)
 pnpm dev
@@ -63,6 +64,8 @@ pnpm dev
 
 - API + Swagger docs → http://localhost:3000/api/docs (global route prefix: `/api/v1`)
 - Agency dashboard → http://localhost:3001
+- Client website → http://localhost:3004 (browsing is public; booking needs a CLIENT
+  account with approved KYC — the dev seed's `+213661000002` qualifies)
 
 **Signing in (dev):** the dashboard uses phone-OTP login. With the console SMS
 provider (default in dev) the 6-digit code is printed to the **backend console** —

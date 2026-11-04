@@ -117,19 +117,29 @@ See [PROJECT_STATUS.md](../apps/backend/PROJECT_STATUS.md) for the authoritative
 
 ---
 
-## Phase 3 — Client PWA (`apps/client-pwa`)
+## Phase 3 — Client website (`apps/client-web`) → then PWA
 
-Goal: the mobile funnel, installable and tolerant of unstable data.
+Goal: the client funnel. Desktop web first; the installable mobile PWA follows on the
+same API and components.
 
-- [ ] Scaffold `apps/client-pwa` (Next.js PWA, port 3002) reusing the shared packages
-- [ ] Extract reusable primitives into a new `@dzrent/ui` package (Button, Chip,
-      StatusBadge, DepositBox, PriceBreakdown, DocUpload, WilayaPicker)
-- [ ] Screens (design handoff §9.A): OTP phone → OTP code → KYC → Home/search →
-      **agency-first** results → agency page → car detail → checkout → contract +
-      e-signature → payment → confirmation/active → trips/docs/profile
-- [ ] PWA: installable, offline-tolerant, ≥44px touch targets, self-hosted fonts
-- 🎯 A client completes a booking on a phone; it appears in the agency queue; agency
-  approval flips the client to an active rental.
+- [x] Public catalogue API (`/catalog`: wilayas, categories, agency-first search,
+      agency page, car detail, quote) sharing one bookability rule with search/booking
+- [x] Scaffold `apps/client-web` (Next.js, desktop-first, port 3004) on the shared packages
+- [x] Home/search → **agency-first** results (category + model filters) → agency page →
+      car detail with live quote, total banner and quarantined deposit
+- [x] Phone-OTP sign-in (returns to the car), booking request, live status page
+      (pending → approved / refused), trips list, cancel
+- [x] KYC documents page (status per document, presigned upload)
+- [x] FR/AR with true RTL mirror
+- [x] Production image + compose service (`client`, :3006) + nginx vhost
+- [ ] Public object-storage endpoint so browsers can PUT KYC files / load car photos
+      (presigned URLs currently point at the internal `minio:9000` host)
+- [ ] Contract + e-signature, payment (CIB / Edahabia / cash) screens
+- [ ] Extract reusable primitives into a `@dzrent/ui` package (now duplicated in
+      both apps: Button, Chip, StatusBadge, Field, Placeholder, Icon)
+- [ ] Mobile PWA: installable, offline-tolerant, ≥44px touch targets, self-hosted fonts
+- 🎯 A client completes a booking; it appears in the agency queue; agency approval flips
+  the client's booking page live. ✅ (desktop, verified locally)
 
 ---
 
