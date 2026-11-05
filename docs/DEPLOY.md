@@ -31,10 +31,24 @@ The backend entrypoint runs `prisma migrate deploy` on every boot. Reference dat
 ## A. Continuous deployment (GitHub Actions)
 
 CD lives on the **`production`** branch. Every push runs
-[`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml): it ships a
-`git archive` (tracked files only) over cloudflared-Access SSH, writes `.env` from
-secrets, and runs `docker compose -f docker-compose.prod.yml up -d --build` on the
-server. The image builds on the VM — no registry, no GitHub deploy key needed.
+[`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) in two jobs:
+
+1. **build** — GitHub Actions builds the three app images (`dzrent-backend`,
+   `dzrent-agency-dashboard`, `dzrent-client-web`) in parallel, with a layer cache,
+   and pushes them to **GHCR** (`ghcr.io/rayanmelzi/…`) tagged with the commit SHA
+   and `latest`.
+2. **deploy** — over cloudflared-Access SSH it ships the compose file, writes `.env`
+   from secrets (with `DZRENT_TAG=<sha>`), logs in to GHCR with the run's short-lived
+   `GITHUB_TOKEN`, **pulls only the app images**, restarts them with
+   `up -d --no-build`, removes the previous DzRent images, then logs out.
+
+The VM never runs `npm/pnpm install` or builds anything, so it needs little CPU and
+disk. Postgres/Redis/MinIO images are never pulled by a deploy (no surprise upgrades).
+GHCR packages stay private; no PAT is needed.
+
+**Rollback:** re-run an older successful "Deploy to VM" run (its images are still in
+GHCR under that commit SHA), or on the VM set `DZRENT_TAG=<older sha>` in `.env` and
+`docker compose -f docker-compose.prod.yml up -d --no-build` after a `pull`.
 
 ### 1. Repository secrets
 
