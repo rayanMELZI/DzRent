@@ -186,9 +186,14 @@ jobs:
           scp app.tar.gz deploy.env ghcr.token vm:/tmp/
           ssh vm APP_DIR="$APP_DIR" GHCR_USER="$GHCR_USER" 'bash -s' <<'REMOTE'
           set -e
-          [ -n "$APP_DIR" ] && [ "$APP_DIR" != "/" ] || { echo "VM_APP_DIR is unsafe: '$APP_DIR'"; exit 1; }
           trap 'rm -f /tmp/ghcr.token /tmp/deploy.env /tmp/app.tar.gz; docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+          # The dir below is wiped on every deploy, so it must be a dedicated
+          # subfolder — never /, $HOME or a parent of it (that would delete ~/.ssh).
+          case "$APP_DIR" in /*) ;; *) echo "VM_APP_DIR must be absolute: '$APP_DIR'"; exit 1;; esac
           mkdir -p "$APP_DIR"
+          APP_REAL=$(cd "$APP_DIR" && pwd -P); HOME_REAL=$(cd "$HOME" && pwd -P)
+          case "$HOME_REAL/" in "$APP_REAL"/*) echo "VM_APP_DIR '$APP_DIR' is \$HOME or a parent of it — use a subfolder like \$HOME/dzrent"; exit 1;; esac
+          [ "$APP_REAL" != "/" ] && [ ! -e "$APP_REAL/.ssh" ] || { echo "VM_APP_DIR is unsafe: '$APP_DIR'"; exit 1; }
           # Replace the checkout; Docker volumes (DB/redis/minio) live outside this dir.
           find "$APP_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           tar xzf /tmp/app.tar.gz -C "$APP_DIR"
