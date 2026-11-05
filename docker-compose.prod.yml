@@ -6,8 +6,12 @@
 # postgres / redis / minio are internal to the compose network (no host ports).
 #
 # The .env in this directory is BOTH the backend's runtime env_file AND the source
-# Compose interpolates ${...} from. See .env.prod.example. Deploy with:
-#   docker compose -f docker-compose.prod.yml up -d --build
+# Compose interpolates ${...} from. See .env.prod.example.
+#
+# App images are built by GitHub Actions and pulled from GHCR
+# (${DZRENT_REGISTRY}/dzrent-*:${DZRENT_TAG}); the server never builds. Deploy with:
+#   docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --no-build
+# The build: blocks remain as a manual fallback (`up -d --build` on a machine with room).
 name: dzrent
 
 services:
@@ -81,7 +85,7 @@ services:
   backend:
     build:
       context: ./apps/backend
-    image: dzrent-backend
+    image: ${DZRENT_REGISTRY:-ghcr.io/rayanmelzi}/dzrent-backend:${DZRENT_TAG:-latest}
     container_name: dzrent_backend
     restart: always
     env_file: .env
@@ -105,7 +109,7 @@ services:
       dockerfile: apps/agency-dashboard/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://dzrent-agence.rayanemelzi.dev/api/v1}
-    image: dzrent-agency-dashboard
+    image: ${DZRENT_REGISTRY:-ghcr.io/rayanmelzi}/dzrent-agency-dashboard:${DZRENT_TAG:-latest}
     container_name: dzrent_frontend
     restart: always
     depends_on:
@@ -127,7 +131,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${CLIENT_PUBLIC_API_URL:-https://dzrent.rayanemelzi.dev/api/v1}
         NEXT_PUBLIC_AGENCY_URL: ${AGENCY_PUBLIC_URL:-https://dzrent-agence.rayanemelzi.dev}
-    image: dzrent-client-web
+    image: ${DZRENT_REGISTRY:-ghcr.io/rayanmelzi}/dzrent-client-web:${DZRENT_TAG:-latest}
     container_name: dzrent_client
     restart: always
     depends_on:
