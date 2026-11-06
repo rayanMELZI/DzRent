@@ -52,7 +52,7 @@ services:
       options: { max-size: '10m', max-file: '3' }
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     container_name: dzrent_minio_prod
     restart: always
     command: server /data --console-address ":9001"
@@ -68,7 +68,7 @@ services:
 
   # One-shot: create the object-storage buckets the backend expects, then exit.
   minio-init:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:latest
     depends_on:
       minio:
         condition: service_started
