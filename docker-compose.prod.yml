@@ -51,8 +51,12 @@ services:
       driver: json-file
       options: { max-size: '10m', max-file: '3' }
 
+  # MinIO stopped publishing free images (Docker Hub minio/mc is gone, quay.io
+  # needs auth). The VM already has minio/minio:latest locally, and Compose only
+  # pulls images that are missing, so keep this exact name. On a fresh machine,
+  # swap in an available build (e.g. bitnamilegacy/minio) — check volume perms.
   minio:
-    image: quay.io/minio/minio:latest
+    image: minio/minio:latest
     container_name: dzrent_minio_prod
     restart: always
     command: server /data --console-address ":9001"
@@ -67,8 +71,9 @@ services:
       options: { max-size: '10m', max-file: '3' }
 
   # One-shot: create the object-storage buckets the backend expects, then exit.
+  # Reuses the server image (it ships the `mc` client) — no extra image to pull.
   minio-init:
-    image: quay.io/minio/mc:latest
+    image: minio/minio:latest
     depends_on:
       minio:
         condition: service_started
